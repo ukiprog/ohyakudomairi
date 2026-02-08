@@ -119,6 +119,9 @@ class SceneManager {
             throw new Error(`Scene must be an instance of Scene class: ${name}`);
         }
         
+        // シーンにGameEngineの参照を設定
+        scene.gameEngine = this.gameEngine;
+        
         this.scenes.set(name, scene);
         console.log(`Scene added: ${name}`);
         

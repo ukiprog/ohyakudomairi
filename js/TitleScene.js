@@ -584,12 +584,14 @@ class TitleScene extends Scene {
         
         console.log('Starting game with data:', gameData);
         
-        // GameSceneに遷移（まだ実装されていないので、後のタスクで実装）
-        // 現在はコンソールにログを出力するのみ
-        console.log('Game would start here with:', gameData);
-        
-        // TODO: 実際のGameSceneへの遷移は後のタスクで実装
-        // this.gameEngine.getSceneManager().switchScene('game', gameData);
+        // GameSceneに遷移
+        const sceneManager = this.gameEngine?.getSceneManager();
+        if (sceneManager && sceneManager.hasScene('game')) {
+            sceneManager.switchScene('game', gameData);
+        } else {
+            console.warn('GameScene not available, staying in TitleScene');
+            this.showErrorMessage('ゲームシーンが利用できません');
+        }
     }
     
     /**

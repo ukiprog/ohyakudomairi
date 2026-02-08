@@ -44,6 +44,10 @@ function setupScenes() {
     const titleScene = new TitleScene();
     sceneManager.addScene('title', titleScene);
     
+    // GameSceneを追加（テスト用）
+    const gameScene = new GameScene();
+    sceneManager.addScene('game', gameScene);
+    
     // 最初のシーンをTitleSceneに設定
     sceneManager.switchScene('title');
     
