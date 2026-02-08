@@ -6,13 +6,13 @@
   - requestAnimationFrameを使用した60FPS描画システムを構築
   - _Requirements: 7.1, 7.2_
 
-- [ ] 2. Scene管理システムの実装
-  - [ ] 2.1 SceneManagerクラスとベースSceneクラスを実装
+- [x] 2. Scene管理システムの実装
+  - [x] 2.1 SceneManagerクラスとベースSceneクラスを実装
     - シーン間の遷移機能を実装
     - 各シーンのライフサイクル管理（init, update, render）
     - _Requirements: 1.1, 3.1, 3.2_
   
-  - [ ] 2.2 TitleSceneを実装
+  - [x] 2.2 TitleSceneを実装
     - 名前と願い事の入力フォームを作成
     - 入力検証機能を実装
     - ゲーム開始ボタンとGameSceneへの遷移

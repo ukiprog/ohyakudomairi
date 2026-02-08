@@ -6,27 +6,30 @@ class GameEngine {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.context = this.canvas.getContext('2d');
-        
+
         // ゲーム状態
         this.isRunning = false;
         this.lastFrameTime = 0;
         this.targetFPS = 60;
         this.frameInterval = 1000 / this.targetFPS;
-        
+
         // パフォーマンス監視
         this.frameCount = 0;
         this.fpsCounter = 0;
         this.lastFPSUpdate = 0;
-        
+
+        // シーン管理システム
+        this.sceneManager = null;
+
         // ゲームループのバインド
         this.gameLoop = this.gameLoop.bind(this);
-        
+
         // Canvas設定
         this.setupCanvas();
-        
+
         console.log('GameEngine initialized with canvas:', canvasId);
     }
-    
+
     /**
      * Canvasの初期設定
      */
@@ -36,27 +39,30 @@ class GameEngine {
         this.context.webkitImageSmoothingEnabled = false;
         this.context.mozImageSmoothingEnabled = false;
         this.context.msImageSmoothingEnabled = false;
-        
+
         // デフォルトのフォント設定
         this.context.font = '16px Arial';
         this.context.textAlign = 'left';
         this.context.textBaseline = 'top';
     }
-    
+
     /**
      * ゲームエンジンの初期化
      */
     init() {
         console.log('GameEngine initializing...');
-        
+
+        // シーン管理システムの初期化
+        this.sceneManager = new SceneManager(this);
+
         // 初期化処理
         this.lastFrameTime = performance.now();
         this.lastFPSUpdate = this.lastFrameTime;
-        
+
         console.log('GameEngine initialized successfully');
         return this;
     }
-    
+
     /**
      * ゲームループの開始
      */
@@ -65,13 +71,13 @@ class GameEngine {
             console.warn('GameEngine is already running');
             return;
         }
-        
+
         console.log('Starting GameEngine...');
         this.isRunning = true;
         this.lastFrameTime = performance.now();
         requestAnimationFrame(this.gameLoop);
     }
-    
+
     /**
      * ゲームループの停止
      */
@@ -79,7 +85,7 @@ class GameEngine {
         console.log('Stopping GameEngine...');
         this.isRunning = false;
     }
-    
+
     /**
      * メインゲームループ
      * requestAnimationFrameを使用した60FPS制御
@@ -88,65 +94,71 @@ class GameEngine {
         if (!this.isRunning) {
             return;
         }
-        
+
         // 次のフレームをスケジュール
         requestAnimationFrame(this.gameLoop);
-        
+
         // フレーム間隔の計算
         const deltaTime = currentTime - this.lastFrameTime;
-        
+
         // 60FPS制御（約16.67ms間隔）
         if (deltaTime >= this.frameInterval) {
             // FPS計算
             this.updateFPS(currentTime);
-            
+
             // ゲーム更新
             this.update(deltaTime);
-            
+
             // 描画
             this.render();
-            
+
             this.lastFrameTime = currentTime - (deltaTime % this.frameInterval);
         }
     }
-    
+
     /**
      * FPS計算と表示
      */
     updateFPS(currentTime) {
         this.frameCount++;
-        
+
         if (currentTime - this.lastFPSUpdate >= 1000) {
             this.fpsCounter = this.frameCount;
             this.frameCount = 0;
             this.lastFPSUpdate = currentTime;
         }
     }
-    
+
     /**
      * ゲーム状態の更新
      * @param {number} deltaTime - 前フレームからの経過時間（ミリ秒）
      */
     update(deltaTime) {
-        // 基本実装 - サブクラスでオーバーライド予定
-        // 現在は何もしない（後のタスクで実装）
+        // シーン管理システムの更新
+        if (this.sceneManager) {
+            this.sceneManager.update(deltaTime);
+        }
     }
-    
+
     /**
      * 画面描画
      */
     render() {
         // 画面クリア
         this.clearScreen();
-        
+
+        // シーン管理システムの描画
+        if (this.sceneManager) {
+            this.sceneManager.render(this.context);
+        } else {
+            // シーンマネージャーがない場合はテスト用コンテンツを表示
+            this.renderTestContent();
+        }
+
         // デバッグ情報の描画
         this.renderDebugInfo();
-        
-        // 基本実装 - サブクラスでオーバーライド予定
-        // 現在はテスト用の描画のみ
-        this.renderTestContent();
     }
-    
+
     /**
      * 画面クリア
      */
@@ -154,17 +166,19 @@ class GameEngine {
         this.context.fillStyle = '#1a252f';
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
-    
+
     /**
      * デバッグ情報の描画
      */
     renderDebugInfo() {
         this.context.fillStyle = '#ecf0f1';
         this.context.font = '12px Arial';
-        this.context.fillText(`FPS: ${this.fpsCounter}`, 10, 10);
-        this.context.fillText(`Canvas: ${this.canvas.width}x${this.canvas.height}`, 10, 25);
+        this.context.textAlign = 'left';
+        this.context.textBaseline = 'top';
+        this.context.fillText(`FPS: ${this.fpsCounter}`, 15, 15);
+        this.context.fillText(`Canvas: ${this.canvas.width}x${this.canvas.height}`, 15, 30);
     }
-    
+
     /**
      * テスト用コンテンツの描画
      */
@@ -172,35 +186,35 @@ class GameEngine {
         // 中央にテストメッセージを表示
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        
+
         this.context.fillStyle = '#e74c3c';
         this.context.font = '24px Arial';
         this.context.textAlign = 'center';
         this.context.fillText('御百度参り', centerX, centerY - 40);
-        
+
         this.context.fillStyle = '#3498db';
         this.context.font = '16px Arial';
         this.context.fillText('GameEngine Running', centerX, centerY);
-        
+
         this.context.fillStyle = '#2ecc71';
         this.context.font = '14px Arial';
         this.context.fillText('60FPS Game Loop Active', centerX, centerY + 30);
-        
+
         // テスト用のアニメーション（回転する四角形）
         const time = performance.now() * 0.001;
         const rotation = time * 2;
-        
+
         this.context.save();
         this.context.translate(centerX, centerY + 80);
         this.context.rotate(rotation);
         this.context.fillStyle = '#f39c12';
         this.context.fillRect(-20, -20, 40, 40);
         this.context.restore();
-        
+
         // テキストアライメントをリセット
         this.context.textAlign = 'left';
     }
-    
+
     /**
      * Canvasのサイズを取得
      */
@@ -210,18 +224,25 @@ class GameEngine {
             height: this.canvas.height
         };
     }
-    
+
     /**
      * Canvasのコンテキストを取得
      */
     getContext() {
         return this.context;
     }
-    
+
     /**
      * ゲームが実行中かどうかを確認
      */
     isGameRunning() {
         return this.isRunning;
+    }
+
+    /**
+     * シーン管理システムを取得
+     */
+    getSceneManager() {
+        return this.sceneManager;
     }
 }

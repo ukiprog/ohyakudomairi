@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
         gameEngine = new GameEngine('game-canvas');
         gameEngine.init();
         
+        // シーンの設定
+        setupScenes();
+        
         // ローディング画面を非表示にしてゲーム開始
         hideLoadingScreen();
         
@@ -30,6 +33,22 @@ document.addEventListener('DOMContentLoaded', function() {
         showError('ゲームの初期化に失敗しました。ブラウザを更新してください。');
     }
 });
+
+/**
+ * シーンの設定
+ */
+function setupScenes() {
+    const sceneManager = gameEngine.getSceneManager();
+    
+    // TitleSceneを追加
+    const titleScene = new TitleScene();
+    sceneManager.addScene('title', titleScene);
+    
+    // 最初のシーンをTitleSceneに設定
+    sceneManager.switchScene('title');
+    
+    console.log('Scenes initialized');
+}
 
 /**
  * ローディング画面を非表示にする
