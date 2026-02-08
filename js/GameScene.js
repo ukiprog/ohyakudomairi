@@ -24,6 +24,10 @@ class GameScene extends Scene {
         this.playerAtHyakudoStone = false;
         this.playerAtMainHall = false;
         
+        // 進捗管理システム
+        this.progressTracker = null;
+        this.progressUI = null;
+        
         console.log('GameScene created');
     }
     
@@ -62,6 +66,24 @@ class GameScene extends Scene {
         this.player = new PlayerCharacter(400 - 16, 400); 
         this.player.setBounds(0, 0, 800, 600);
         this.player.setDebugDisplay(false); // 本格実装なのでデバッグ表示を無効化
+        
+        // 進捗管理システムの初期化
+        this.progressTracker = new ProgressTracker();
+        this.progressUI = new ProgressUI(800, 600);
+        
+        // 進捗トラッカーのコールバック設定
+        this.progressTracker.setOnProgressUpdate((current, remaining) => {
+            this.progressUI.updateProgress(current, remaining, this.progressTracker.getProgressPercentage());
+        });
+        
+        this.progressTracker.setOnMidpointReached(() => {
+            this.progressUI.showMidpointMessage();
+        });
+        
+        this.progressTracker.setOnCompletion(() => {
+            console.log('御百度参り完了！神様登場の準備...');
+            // TODO: CompletionSceneへの遷移処理
+        });
         
         console.log('GameScene initialized with shrine environment');
     }
@@ -121,6 +143,17 @@ class GameScene extends Scene {
             this.player.update(deltaTime);
         }
         
+        // 進捗管理システムの更新
+        if (this.progressTracker) {
+            // 進捗トラッカー自体は状態変化時のみ更新されるため、
+            // ここでは特別な更新処理は不要
+        }
+        
+        // 進捗UIの更新
+        if (this.progressUI) {
+            this.progressUI.update(deltaTime);
+        }
+        
         // プレイヤーと環境オブジェクトの衝突判定
         this.checkPlayerCollisions();
     }
@@ -167,6 +200,21 @@ class GameScene extends Scene {
             this.player.render(context);
         }
         
+        // 進捗UIの描画
+        if (this.progressUI && this.progressTracker) {
+            this.progressUI.render(
+                context,
+                this.progressTracker.getCurrentCount(),
+                this.progressTracker.getRemainingCount(),
+                this.progressTracker.getProgressPercentage()
+            );
+            
+            // 完了時の特別表示
+            if (this.progressTracker.isCompleted()) {
+                this.progressUI.renderCompletionMessage(context);
+            }
+        }
+        
         // UI情報の描画
         this.renderUI(context);
         
@@ -179,6 +227,12 @@ class GameScene extends Scene {
      */
     onPlayerReachHyakudoStone(player, stone) {
         this.playerAtHyakudoStone = true;
+        
+        // 進捗トラッカーに通知
+        if (this.progressTracker) {
+            this.progressTracker.onPlayerReachHyakudo();
+        }
+        
         console.log('Player reached Hyakudo Stone - 御百度参り開始地点');
     }
     
@@ -195,6 +249,12 @@ class GameScene extends Scene {
      */
     onPlayerReachMainHall(player, hall) {
         this.playerAtMainHall = true;
+        
+        // 進捗トラッカーに通知
+        if (this.progressTracker) {
+            this.progressTracker.onPlayerReachHall();
+        }
+        
         console.log('Player reached Main Hall - 参拝地点');
     }
     
@@ -306,6 +366,15 @@ class GameScene extends Scene {
         if (this.mainHall) {
             this.mainHall.destroy();
             this.mainHall = null;
+        }
+        
+        if (this.progressTracker) {
+            this.progressTracker = null;
+        }
+        
+        if (this.progressUI) {
+            this.progressUI.destroy();
+            this.progressUI = null;
         }
         
         super.destroy();
