@@ -1,6 +1,6 @@
 /**
- * GameScene - メインゲームシーン（テスト用の基本実装）
- * プレイヤーキャラクターのテスト用シーン
+ * GameScene - メインゲームシーン
+ * 神社環境とプレイヤーキャラクターを統合したゲームシーン
  */
 class GameScene extends Scene {
     constructor() {
@@ -9,12 +9,20 @@ class GameScene extends Scene {
         // プレイヤーキャラクター
         this.player = null;
         
+        // 神社環境システム
+        this.shrineEnvironment = null;
+        
+        // 環境オブジェクト
+        this.hyakudoStone = null;
+        this.mainHall = null;
+        
         // ゲームデータ
         this.playerName = '';
         this.playerWish = '';
         
-        // テスト用の背景色
-        this.backgroundColor = '#2c3e50';
+        // プレイヤーの状態追跡
+        this.playerAtHyakudoStone = false;
+        this.playerAtMainHall = false;
         
         console.log('GameScene created');
     }
@@ -25,12 +33,37 @@ class GameScene extends Scene {
     init() {
         super.init();
         
-        // プレイヤーキャラクターを作成（画面中央に配置）
-        this.player = new PlayerCharacter(400 - 16, 300 - 16); // 32x32なので中央に配置するため16ピクセルずらす
-        this.player.setBounds(0, 0, 800, 600);
-        this.player.setDebugDisplay(true); // テスト用にデバッグ表示を有効化
+        // 神社環境システムの初期化
+        this.shrineEnvironment = new ShrineEnvironment(800, 600);
         
-        console.log('GameScene initialized');
+        // 百度石の作成（画面下部、高さ調整）
+        this.hyakudoStone = new HyakudoStone(370, 490);
+        this.hyakudoStone.setOnReachCallback((player, stone) => {
+            this.onPlayerReachHyakudoStone(player, stone);
+        });
+        this.hyakudoStone.setOnLeaveCallback((player, stone) => {
+            this.onPlayerLeaveHyakudoStone(player, stone);
+        });
+        
+        // 社殿の作成（画面上部）
+        this.mainHall = new MainHall(300, 60);
+        this.mainHall.setOnReachCallback((player, hall) => {
+            this.onPlayerReachMainHall(player, hall);
+        });
+        this.mainHall.setOnLeaveCallback((player, hall) => {
+            this.onPlayerLeaveMainHall(player, hall);
+        });
+        
+        // 環境オブジェクトを環境システムに追加
+        this.shrineEnvironment.addEnvironmentObject(this.hyakudoStone);
+        this.shrineEnvironment.addEnvironmentObject(this.mainHall);
+        
+        // プレイヤーキャラクターを作成（百度石の近くに配置）
+        this.player = new PlayerCharacter(400 - 16, 400); 
+        this.player.setBounds(0, 0, 800, 600);
+        this.player.setDebugDisplay(false); // 本格実装なのでデバッグ表示を無効化
+        
+        console.log('GameScene initialized with shrine environment');
     }
     
     /**
@@ -78,9 +111,44 @@ class GameScene extends Scene {
      * @param {number} deltaTime - 前フレームからの経過時間（ミリ秒）
      */
     update(deltaTime) {
+        // 神社環境システムの更新
+        if (this.shrineEnvironment) {
+            this.shrineEnvironment.update(deltaTime);
+        }
+        
         // プレイヤーキャラクターの更新
         if (this.player) {
             this.player.update(deltaTime);
+        }
+        
+        // プレイヤーと環境オブジェクトの衝突判定
+        this.checkPlayerCollisions();
+    }
+    
+    /**
+     * プレイヤーと環境オブジェクトの衝突判定
+     */
+    checkPlayerCollisions() {
+        if (!this.player) return;
+        
+        // 百度石との衝突判定
+        if (this.hyakudoStone) {
+            const isColliding = this.hyakudoStone.checkCollision(this.player);
+            if (isColliding && !this.playerAtHyakudoStone) {
+                this.hyakudoStone.onPlayerReach(this.player);
+            } else if (!isColliding && this.playerAtHyakudoStone) {
+                this.hyakudoStone.onPlayerLeave(this.player);
+            }
+        }
+        
+        // 社殿との衝突判定
+        if (this.mainHall) {
+            const isColliding = this.mainHall.checkCollision(this.player);
+            if (isColliding && !this.playerAtMainHall) {
+                this.mainHall.onPlayerReach(this.player);
+            } else if (!isColliding && this.playerAtMainHall) {
+                this.mainHall.onPlayerLeave(this.player);
+            }
         }
     }
     
@@ -89,76 +157,69 @@ class GameScene extends Scene {
      * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
      */
     render(context) {
-        // 背景の描画
-        this.renderBackground(context);
-        
-        // UI情報の描画
-        this.renderUI(context);
+        // 神社環境の描画
+        if (this.shrineEnvironment) {
+            this.shrineEnvironment.render(context);
+        }
         
         // プレイヤーキャラクターの描画
         if (this.player) {
             this.player.render(context);
         }
         
+        // UI情報の描画
+        this.renderUI(context);
+        
         // 操作説明の描画
         this.renderInstructions(context);
     }
     
     /**
-     * 背景の描画
+     * プレイヤーが百度石に到達した時の処理
      */
-    renderBackground(context) {
-        // シンプルなグラデーション背景
-        const gradient = context.createLinearGradient(0, 0, 0, 600);
-        gradient.addColorStop(0, '#34495e');
-        gradient.addColorStop(1, '#2c3e50');
-        
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, 800, 600);
-        
-        // 簡単な神社風の装飾
-        this.renderSimpleShrine(context);
+    onPlayerReachHyakudoStone(player, stone) {
+        this.playerAtHyakudoStone = true;
+        console.log('Player reached Hyakudo Stone - 御百度参り開始地点');
     }
     
     /**
-     * 簡単な神社風装飾の描画
+     * プレイヤーが百度石から離れた時の処理
+     */
+    onPlayerLeaveHyakudoStone(player, stone) {
+        this.playerAtHyakudoStone = false;
+        console.log('Player left Hyakudo Stone');
+    }
+    
+    /**
+     * プレイヤーが社殿に到達した時の処理
+     */
+    onPlayerReachMainHall(player, hall) {
+        this.playerAtMainHall = true;
+        console.log('Player reached Main Hall - 参拝地点');
+    }
+    
+    /**
+     * プレイヤーが社殿から離れた時の処理
+     */
+    onPlayerLeaveMainHall(player, hall) {
+        this.playerAtMainHall = false;
+        console.log('Player left Main Hall');
+    }
+    
+    /**
+     * 背景の描画（旧システム - 削除予定）
+     */
+    renderBackground(context) {
+        // この関数は新しい環境システムに置き換えられました
+        // 互換性のために残していますが、使用されません
+    }
+    
+    /**
+     * 簡単な神社風装飾の描画（旧システム - 削除予定）
      */
     renderSimpleShrine(context) {
-        // 地面
-        context.fillStyle = '#27ae60';
-        context.fillRect(0, 500, 800, 100);
-        
-        // 社殿（上部）- 2倍サイズ
-        context.fillStyle = '#e74c3c';
-        context.fillRect(300, 60, 200, 160);
-        context.fillStyle = '#c0392b';
-        context.fillRect(280, 40, 240, 40);
-        context.fillStyle = '#7f8c8d';
-        context.font = '18px Arial';
-        context.textAlign = 'center';
-        context.fillText('社殿', 400, 20);
-        
-        // 百度石（下部）- 2倍サイズ
-        context.fillStyle = '#95a5a6';
-        context.fillRect(370, 460, 60, 100);
-        context.fillStyle = '#7f8c8d';
-        context.fillText('百度石', 400, 440);
-        
-        // 参道（縦方向）- 幅も調整
-        context.fillStyle = '#bdc3c7';
-        context.fillRect(380, 220, 40, 240);
-        
-        // 参道の両脇に石灯籠風の装飾 - サイズ調整
-        context.fillStyle = '#95a5a6';
-        // 左側の石灯籠
-        context.fillRect(340, 240, 25, 60);
-        context.fillRect(340, 320, 25, 60);
-        context.fillRect(340, 400, 25, 60);
-        
-        // 右側の石灯籠
-        context.fillRect(435, 240, 25, 60);
-        context.fillRect(435, 320, 25, 60);
-        context.fillRect(435, 400, 25, 60);
+        // この関数は新しい環境システムに置き換えられました
+        // 互換性のために残していますが、使用されません
     }
     
     /**
@@ -179,10 +240,17 @@ class GameScene extends Scene {
             context.fillText(`願い事: ${this.playerWish}`, 20, 45);
         }
         
-        // テスト用の情報
+        // 現在の状態表示
         context.fillStyle = '#f39c12';
         context.font = '14px Arial';
-        context.fillText('テストモード - プレイヤーキャラクターシステム', 20, 80);
+        
+        if (this.playerAtHyakudoStone) {
+            context.fillText('百度石に到達中', 20, 80);
+        } else if (this.playerAtMainHall) {
+            context.fillText('社殿で参拝中', 20, 80);
+        } else {
+            context.fillText('神社境内を移動中', 20, 80);
+        }
     }
     
     /**
@@ -223,6 +291,21 @@ class GameScene extends Scene {
         if (this.player) {
             this.player.destroy();
             this.player = null;
+        }
+        
+        if (this.shrineEnvironment) {
+            this.shrineEnvironment.destroy();
+            this.shrineEnvironment = null;
+        }
+        
+        if (this.hyakudoStone) {
+            this.hyakudoStone.destroy();
+            this.hyakudoStone = null;
+        }
+        
+        if (this.mainHall) {
+            this.mainHall.destroy();
+            this.mainHall = null;
         }
         
         super.destroy();

@@ -23,9 +23,9 @@ class PlayerCharacter {
         this.targetX = x;
         this.targetY = y;
         
-        // スプライトレンダリングシステム
-        this.spriteRenderer = new SpriteRenderer();
-        this.animationController = new AnimationController(this.spriteRenderer);
+        // スプライトレンダリングシステムを無効化（フォールバック描画を使用）
+        this.spriteRenderer = null;
+        this.animationController = null;
         
         // デバッグ表示フラグ
         this.showDebugInfo = false;
@@ -259,9 +259,9 @@ class PlayerCharacter {
         // 移動状態の更新
         this.updateMovementState();
         
-        // アニメーションの更新
-        this.animationController.updateAnimation(this.isMoving, this.direction);
-        this.animationController.update(deltaTime);
+        // アニメーションの更新は無効化（フォールバック描画を使用）
+        // this.animationController.updateAnimation(this.isMoving, this.direction);
+        // this.animationController.update(deltaTime);
     }
     
     /**
@@ -339,17 +339,63 @@ class PlayerCharacter {
     }
     
     /**
-     * 描画処理（スプライトレンダリング）
+     * 描画処理（確実にフォールバック描画を使用）
      * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
      */
     render(context) {
-        // スプライトレンダリング
-        this.animationController.render(context, this.x, this.y);
+        // 確実にシンプルなキャラクターを描画
+        this.renderSimpleCharacter(context);
         
         // デバッグ情報（開発時のみ）
         if (this.showDebugInfo) {
             this.renderDebugInfo(context);
         }
+    }
+    
+    /**
+     * シンプルなキャラクターの描画（フォールバック用）
+     * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
+     */
+    renderSimpleCharacter(context) {
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+        
+        // 体（縦長の四角形）
+        context.fillStyle = '#FF6B6B';
+        context.fillRect(centerX - 8, centerY - 2, 16, 20);
+        
+        // 頭（円形）
+        context.fillStyle = '#FFE4B5';
+        context.beginPath();
+        context.arc(centerX, centerY - 8, 8, 0, Math.PI * 2);
+        context.fill();
+        
+        // 目
+        context.fillStyle = '#2C3E50';
+        context.beginPath();
+        context.arc(centerX - 3, centerY - 10, 1.5, 0, Math.PI * 2);
+        context.fill();
+        
+        context.beginPath();
+        context.arc(centerX + 3, centerY - 10, 1.5, 0, Math.PI * 2);
+        context.fill();
+        
+        // 方向インジケーター
+        if (this.isMoving) {
+            this.renderDirectionIndicator(context);
+        }
+        
+        // 輪郭
+        context.strokeStyle = '#2C3E50';
+        context.lineWidth = 1;
+        
+        // 体の輪郭
+        context.strokeRect(centerX - 8, centerY - 2, 16, 20);
+        
+        // 頭の輪郭
+        context.beginPath();
+        context.arc(centerX, centerY - 8, 8, 0, Math.PI * 2);
+        context.stroke();
     }
     
     /**
@@ -559,12 +605,20 @@ class PlayerCharacter {
     destroy() {
         this.removeInputListeners();
         
-        if (this.animationController) {
-            this.animationController.destroy();
+        if (this.animationController && this.animationController.destroy) {
+            try {
+                this.animationController.destroy();
+            } catch (error) {
+                // エラーを無視
+            }
         }
         
-        if (this.spriteRenderer) {
-            this.spriteRenderer.destroy();
+        if (this.spriteRenderer && this.spriteRenderer.destroy) {
+            try {
+                this.spriteRenderer.destroy();
+            } catch (error) {
+                // エラーを無視
+            }
         }
         
         console.log('PlayerCharacter destroyed');
