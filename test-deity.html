@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deity Test - 神様テスト</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #ecf0f1;
+            font-family: Arial, sans-serif;
+        }
+        #test-canvas {
+            border: 2px solid #f39c12;
+            display: block;
+            margin: 20px auto;
+        }
+        .info {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>神様キャラクターテスト</h1>
+        <p>神様の登場アニメーションと祝福アニメーションをテストします</p>
+        <button onclick="resetDeity()">リセット</button>
+        <button onclick="startBlessing()">祝福開始</button>
+    </div>
+    
+    <canvas id="test-canvas" width="800" height="600"></canvas>
+    
+    <div class="info">
+        <p id="status">ステータス: 初期化中...</p>
+    </div>
+
+    <script src="js/Deity.js"></script>
+    <script>
+        const canvas = document.getElementById('test-canvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        
+        let deity = null;
+        let lastTime = 0;
+        
+        function init() {
+            // 神様を画面中央に配置
+            deity = new Deity(400 - 16, 250);
+            
+            deity.setOnAppearanceComplete(() => {
+                statusEl.textContent = 'ステータス: 登場完了 - アイドル状態';
+            });
+            
+            deity.setOnBlessingComplete(() => {
+                statusEl.textContent = 'ステータス: 祝福完了 - アイドル状態';
+            });
+            
+            statusEl.textContent = 'ステータス: 登場アニメーション中...';
+            
+            // アニメーションループ開始
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function gameLoop(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            // 更新
+            if (deity) {
+                deity.update(deltaTime);
+            }
+            
+            // 描画
+            render();
+            
+            // 次のフレーム
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function render() {
+            // 背景クリア
+            const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(0.5, '#16213e');
+            gradient.addColorStop(1, '#0f3460');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // 星の装飾
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 137.5) % 800;
+                const y = (i * 73.3) % 600;
+                const size = 1 + (i % 3);
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // 神様を描画
+            if (deity) {
+                deity.render(ctx);
+            }
+            
+            // タイトル
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('神様キャラクター (32x32ピクセル)', 400, 50);
+            
+            // 情報表示
+            if (deity) {
+                ctx.fillStyle = '#ecf0f1';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`アニメーション: ${deity.currentAnimation}`, 20, 500);
+                ctx.fillText(`フレーム: ${deity.animationFrame}`, 20, 520);
+                ctx.fillText(`登場進捗: ${(deity.appearanceProgress * 100).toFixed(1)}%`, 20, 540);
+                ctx.fillText(`祝福進捗: ${(deity.blessingProgress * 100).toFixed(1)}%`, 20, 560);
+            }
+        }
+        
+        function resetDeity() {
+            deity = new Deity(400 - 16, 250);
+            deity.setOnAppearanceComplete(() => {
+                statusEl.textContent = 'ステータス: 登場完了 - アイドル状態';
+            });
+            deity.setOnBlessingComplete(() => {
+                statusEl.textContent = 'ステータス: 祝福完了 - アイドル状態';
+            });
+            statusEl.textContent = 'ステータス: 登場アニメーション中...';
+        }
+        
+        function startBlessing() {
+            if (deity && deity.isAppearanceComplete()) {
+                deity.startBlessing();
+                statusEl.textContent = 'ステータス: 祝福アニメーション中...';
+            } else {
+                statusEl.textContent = 'ステータス: エラー - 登場アニメーションが完了していません';
+            }
+        }
+        
+        // 初期化
+        init();
+    </script>
+</body>
+</html>

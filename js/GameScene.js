@@ -82,7 +82,8 @@ class GameScene extends Scene {
         
         this.progressTracker.setOnCompletion(() => {
             console.log('御百度参り完了！神様登場の準備...');
-            // TODO: CompletionSceneへの遷移処理
+            // CompletionSceneへの遷移処理
+            this.transitionToCompletionScene();
         });
         
         console.log('GameScene initialized with shrine environment');
@@ -360,6 +361,24 @@ class GameScene extends Scene {
     handleInput(input) {
         // プレイヤーキャラクターが入力を直接処理するため、
         // ここでは特別な処理は不要
+    }
+    
+    /**
+     * CompletionSceneへの遷移
+     */
+    transitionToCompletionScene() {
+        console.log('Transitioning to CompletionScene...');
+        
+        // 少し遅延を入れて遷移（完了メッセージを見せるため）
+        setTimeout(() => {
+            if (this.gameEngine && this.gameEngine.sceneManager) {
+                const completionData = {
+                    playerName: this.playerName,
+                    playerWish: this.playerWish
+                };
+                this.gameEngine.sceneManager.switchScene('completion', completionData);
+            }
+        }, 2000); // 2秒後に遷移
     }
     
     /**

@@ -302,9 +302,13 @@ function setupScenes() {
     const titleScene = new TitleScene();
     sceneManager.addScene('title', titleScene);
     
-    // GameSceneを追加（テスト用）
+    // GameSceneを追加
     const gameScene = new GameScene();
     sceneManager.addScene('game', gameScene);
+    
+    // CompletionSceneを追加
+    const completionScene = new CompletionScene();
+    sceneManager.addScene('completion', completionScene);
     
     // GameSceneのProgressTrackerをグローバルにアクセス可能にする（デバッグ用）
     window.progressTracker = null;
