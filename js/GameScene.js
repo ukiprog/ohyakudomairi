@@ -97,6 +97,24 @@ class GameScene extends Scene {
         // プレイヤーの入力リスナーを設定
         if (this.player) {
             this.player.setupInputListeners();
+            
+            // audioManagerの参照を再設定（音声初期化が非同期のため）
+            if (window.audioManager && !this.player.audioManager) {
+                this.player.audioManager = window.audioManager;
+                console.log('AudioManager reference set for PlayerCharacter');
+            }
+        }
+        
+        // 環境オブジェクトにもaudioManagerの参照を設定
+        if (window.audioManager) {
+            if (this.hyakudoStone && !this.hyakudoStone.audioManager) {
+                this.hyakudoStone.audioManager = window.audioManager;
+                console.log('AudioManager reference set for HyakudoStone');
+            }
+            if (this.mainHall && !this.mainHall.audioManager) {
+                this.mainHall.audioManager = window.audioManager;
+                console.log('AudioManager reference set for MainHall');
+            }
         }
         
         console.log('GameScene entered');

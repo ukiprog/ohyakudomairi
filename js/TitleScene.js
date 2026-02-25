@@ -576,6 +576,12 @@ class TitleScene extends Scene {
             return;
         }
         
+        // AudioContextを再開（ブラウザのautoplay policy対応）
+        if (window.audioManager) {
+            window.audioManager.resumeAudioContext();
+            console.log('AudioContext resumed on game start');
+        }
+        
         // 入力データを準備
         const gameData = {
             playerName: this.playerName.trim(),

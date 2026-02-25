@@ -27,6 +27,9 @@ class MainHall extends EnvironmentObject {
         // 屋根の色変化用
         this.roofColorPhase = 0;
         
+        // 音響システム
+        this.audioManager = window.audioManager || null;
+        
         console.log(`MainHall created at (${x}, ${y})`);
     }
     
@@ -401,12 +404,25 @@ class MainHall extends EnvironmentObject {
         this.isPlayerNear = true;
         this.lastPlayerReachTime = performance.now();
         
+        // 参拝の鈴の音を再生
+        this.playPrayerBellSound();
+        
         // 到達イベントのコールバック実行
         if (this.onReachCallback && typeof this.onReachCallback === 'function') {
             this.onReachCallback(player, this);
         }
         
         console.log('Player reached Main Hall');
+    }
+    
+    /**
+     * 参拝の鈴の音を再生
+     */
+    playPrayerBellSound() {
+        if (this.audioManager) {
+            // 社殿到達時の参拝鈴の音（音量0.7でより響く感じに）
+            this.audioManager.playSFX('prayer-bell', 0.7);
+        }
     }
     
     /**

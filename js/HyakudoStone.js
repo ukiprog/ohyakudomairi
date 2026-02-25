@@ -24,6 +24,9 @@ class HyakudoStone extends EnvironmentObject {
         this.glowDirection = 1;
         this.animationTime = 0;
         
+        // 音響システム
+        this.audioManager = window.audioManager || null;
+        
         console.log(`HyakudoStone created at (${x}, ${y})`);
     }
     
@@ -303,12 +306,25 @@ class HyakudoStone extends EnvironmentObject {
         this.isPlayerNear = true;
         this.lastPlayerReachTime = performance.now();
         
+        // 鈴の音を再生
+        this.playBellSound();
+        
         // 到達イベントのコールバック実行
         if (this.onReachCallback && typeof this.onReachCallback === 'function') {
             this.onReachCallback(player, this);
         }
         
         console.log('Player reached Hyakudo Stone');
+    }
+    
+    /**
+     * 鈴の音を再生
+     */
+    playBellSound() {
+        if (this.audioManager) {
+            // 百度石到達時の鈴の音（音量0.6で明確に）
+            this.audioManager.playSFX('bell', 0.6);
+        }
     }
     
     /**

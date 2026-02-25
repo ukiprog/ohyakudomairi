@@ -30,6 +30,14 @@ class PlayerCharacter {
         // デバッグ表示フラグ
         this.showDebugInfo = false;
         
+        // 音響システム
+        this.audioManager = window.audioManager || null;
+        this.footstepTimer = 0;
+        this.footstepInterval = 400; // 足音の間隔（ミリ秒）
+        this.lastFootstepTime = 0;
+        
+        console.log('PlayerCharacter audioManager:', this.audioManager ? 'available' : 'not available');
+        
         // 入力状態
         this.inputState = {
             up: false,
@@ -259,6 +267,9 @@ class PlayerCharacter {
         // 移動状態の更新
         this.updateMovementState();
         
+        // 足音の処理
+        this.updateFootstepSound(deltaTime);
+        
         // アニメーションの更新は無効化（フォールバック描画を使用）
         // this.animationController.updateAnimation(this.isMoving, this.direction);
         // this.animationController.update(deltaTime);
@@ -336,6 +347,44 @@ class PlayerCharacter {
     updateMovementState() {
         // 実際に位置が変わったかどうかで移動状態を判定
         this.isMoving = (this.x !== this.previousX || this.y !== this.previousY);
+    }
+    
+    /**
+     * 足音の更新処理
+     * @param {number} deltaTime - 前フレームからの経過時間（ミリ秒）
+     */
+    updateFootstepSound(deltaTime) {
+        if (!this.audioManager) {
+            return;
+        }
+        
+        if (!this.isMoving) {
+            return;
+        }
+        
+        // 足音タイマーの更新
+        this.footstepTimer += deltaTime;
+        
+        // 足音の間隔に達した場合に音を再生
+        if (this.footstepTimer >= this.footstepInterval) {
+            this.playFootstepSound();
+            this.footstepTimer = 0;
+        }
+    }
+    
+    /**
+     * 足音を再生
+     */
+    playFootstepSound() {
+        if (!this.audioManager) {
+            console.warn('AudioManager not available for footstep sound');
+            return;
+        }
+        
+        console.log('Playing footstep sound');
+        
+        // 足音の音量を調整（0.3で控えめに）
+        this.audioManager.playSFX('footstep', 0.3);
     }
     
     /**

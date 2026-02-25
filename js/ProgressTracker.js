@@ -217,4 +217,43 @@ class ProgressTracker {
         
         console.log('ProgressTracker state loaded:', this.getState());
     }
+    
+    // ===========================================
+    // デバッグ用メソッド（開発者コンソール用）
+    // ===========================================
+    
+    /**
+     * デバッグ: 往復回数を直接設定
+     * @param {number} count - 設定する往復回数
+     */
+    debugSetCount(count) {
+        const oldCount = this.currentRoundTrips;
+        this.currentRoundTrips = Math.max(0, Math.min(this.totalRoundTrips, count));
+        
+        // 完了状態の更新
+        this.completed = this.currentRoundTrips >= this.totalRoundTrips;
+        
+        // 中間地点フラグの更新
+        if (this.currentRoundTrips >= 50 && !this.hasShownMidpointMessage) {
+            this.hasShownMidpointMessage = true;
+        } else if (this.currentRoundTrips < 50) {
+            this.hasShownMidpointMessage = false;
+        }
+        
+        console.log(`Debug: Round trips set to ${this.currentRoundTrips}`);
+        
+        // 進捗更新コールバック
+        if (this.onProgressUpdate) {
+            this.onProgressUpdate(this.currentRoundTrips, this.getRemainingCount());
+        }
+        
+        // 完了コールバック
+        if (this.completed && oldCount < this.totalRoundTrips) {
+            if (this.onCompletion) {
+                this.onCompletion();
+            }
+        }
+        
+        return this.currentRoundTrips;
+    }
 }
