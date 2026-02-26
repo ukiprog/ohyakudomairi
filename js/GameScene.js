@@ -95,8 +95,15 @@ class GameScene extends Scene {
     onEnter() {
         super.onEnter();
         
-        // プレイヤーの入力リスナーを設定
+        // 進捗トラッカーをリセット（新しいゲームを開始）
+        if (this.progressTracker) {
+            this.progressTracker.reset();
+            console.log('ProgressTracker reset for new game');
+        }
+        
+        // プレイヤーの位置をリセット
         if (this.player) {
+            this.player.setPosition(400 - 16, 400);
             this.player.setupInputListeners();
             
             // audioManagerの参照を再設定（音声初期化が非同期のため）
@@ -105,6 +112,10 @@ class GameScene extends Scene {
                 console.log('AudioManager reference set for PlayerCharacter');
             }
         }
+        
+        // プレイヤーの状態をリセット
+        this.playerAtHyakudoStone = false;
+        this.playerAtMainHall = false;
         
         // 環境オブジェクトにもaudioManagerの参照を設定
         if (window.audioManager) {
