@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +8,42 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="styles/main.css">
 </head>
+
 <body>
     <div id="game-container">
         <canvas id="game-canvas" width="800" height="600"></canvas>
         <div id="loading-screen">
             <p>ゲームを読み込み中...</p>
         </div>
+        <!-- 仮想Dパッド（モバイル向けタッチコントロール） -->
+        <div id="touch-controls">
+            <div class="touch-dpad">
+                <button class="touch-btn touch-btn-up"    data-dir="up">▲</button>
+                <button class="touch-btn touch-btn-left"  data-dir="left">◀</button>
+                <button class="touch-btn touch-btn-right" data-dir="right">▶</button>
+                <button class="touch-btn touch-btn-down"  data-dir="down">▼</button>
+            </div>
+        </div>
     </div>
-    
+
     <script src="js/GameEngine.js"></script>
     <script src="js/SceneManager.js"></script>
+    <script src="js/AudioManager.js"></script>
+    <script src="js/SpriteRenderer.js"></script>
+    <script src="js/CollisionDetector.js"></script>
+    <script src="js/EnvironmentObject.js"></script>
+    <script src="js/HyakudoStone.js"></script>
+    <script src="js/MainHall.js"></script>
+    <script src="js/ShrineEnvironment.js"></script>
+    <script src="js/PlayerCharacter.js"></script>
+    <script src="js/TouchControls.js"></script>
+    <script src="js/ProgressTracker.js"></script>
+    <script src="js/ProgressUI.js"></script>
+    <script src="js/Deity.js"></script>
+    <script src="js/CompletionScene.js"></script>
+    <script src="js/GameScene.js"></script>
     <script src="js/TitleScene.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>

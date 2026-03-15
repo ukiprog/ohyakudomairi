@@ -119,6 +119,9 @@ class SceneManager {
             throw new Error(`Scene must be an instance of Scene class: ${name}`);
         }
         
+        // シーンにGameEngineの参照を設定
+        scene.gameEngine = this.gameEngine;
+        
         this.scenes.set(name, scene);
         console.log(`Scene added: ${name}`);
         
@@ -263,6 +266,17 @@ class SceneManager {
         }
     }
     
+    /**
+     * ウィンドウリサイズ通知
+     * @param {number} width - 新しい幅
+     * @param {number} height - 新しい高さ
+     */
+    onResize(width, height) {
+        if (this.currentScene && typeof this.currentScene.onResize === 'function') {
+            this.currentScene.onResize(width, height);
+        }
+    }
+
     /**
      * 遷移中かどうかを確認
      * @returns {boolean} 遷移中かどうか

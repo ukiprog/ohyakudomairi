@@ -5,7 +5,8 @@
 class GameEngine {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
-        this.context = this.canvas.getContext('2d');
+        this.context = null;
+        this.debugMode = false;
 
         // ゲーム状態
         this.isRunning = false;
@@ -34,6 +35,17 @@ class GameEngine {
      * Canvasの初期設定
      */
     setupCanvas() {
+        // Canvas 2Dコンテキストの取得（エラーハンドリング付き）
+        try {
+            this.context = this.canvas.getContext('2d');
+            if (!this.context) throw new Error('Canvas 2D context not available');
+        } catch (error) {
+            console.error('Canvas initialization failed:', error);
+            this.context = null;
+            if (typeof showError === 'function') showError('このブラウザはCanvas描画に対応していません。');
+            return;
+        }
+
         // ピクセルアートに適した設定
         this.context.imageSmoothingEnabled = false;
         this.context.webkitImageSmoothingEnabled = false;
@@ -44,6 +56,51 @@ class GameEngine {
         this.context.font = '16px Arial';
         this.context.textAlign = 'left';
         this.context.textBaseline = 'top';
+
+        // ベース解像度（論理サイズ）
+        this.baseWidth = this.canvas.width;   // 800
+        this.baseHeight = this.canvas.height; // 600
+
+        // レスポンシブスケーリングの設定
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+    }
+
+    /**
+     * ウィンドウリサイズ時にCanvasの論理サイズをビューポートに合わせる
+     * デスクトップは最大800x600、モバイルはビューポート全体を使用
+     */
+    handleResize() {
+        const container = this.canvas.parentElement;
+        if (!container) return;
+
+        const viewportWidth  = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // 横はデスクトップ最大800px、縦はビューポート全体を使う
+        const newWidth  = Math.min(viewportWidth, this.baseWidth);
+        const newHeight = viewportHeight;
+
+        this.canvas.width  = newWidth;
+        this.canvas.height = newHeight;
+
+        this.canvas.style.transform = '';
+        this.canvas.style.width  = newWidth  + 'px';
+        this.canvas.style.height = newHeight + 'px';
+
+        container.style.width  = newWidth  + 'px';
+        container.style.height = newHeight + 'px';
+
+        if (this.context) this.context.imageSmoothingEnabled = false;
+
+        this.currentScale  = 1;
+        this.currentWidth  = newWidth;
+        this.currentHeight = newHeight;
+
+        if (this.sceneManager) {
+            this.sceneManager.onResize(newWidth, newHeight);
+        }
     }
 
     /**
@@ -84,6 +141,7 @@ class GameEngine {
     stop() {
         console.log('Stopping GameEngine...');
         this.isRunning = false;
+        window.removeEventListener('resize', this.handleResize);
     }
 
     /**
@@ -98,21 +156,25 @@ class GameEngine {
         // 次のフレームをスケジュール
         requestAnimationFrame(this.gameLoop);
 
-        // フレーム間隔の計算
-        const deltaTime = currentTime - this.lastFrameTime;
+        // フレーム間隔の計算（タブ切り替え後の大きなジャンプを防ぐため100msでキャップ）
+        const deltaTime = Math.min(currentTime - this.lastFrameTime, 100);
 
         // 60FPS制御（約16.67ms間隔）
         if (deltaTime >= this.frameInterval) {
             // FPS計算
             this.updateFPS(currentTime);
 
-            // ゲーム更新
-            this.update(deltaTime);
+            try {
+                // ゲーム更新
+                this.update(deltaTime);
 
-            // 描画
-            this.render();
+                // 描画
+                this.render();
+            } catch (error) {
+                console.error('Game loop error:', error);
+            }
 
-            this.lastFrameTime = currentTime - (deltaTime % this.frameInterval);
+            this.lastFrameTime = currentTime;
         }
     }
 
@@ -144,6 +206,8 @@ class GameEngine {
      * 画面描画
      */
     render() {
+        if (!this.context) return;
+
         // 画面クリア
         this.clearScreen();
 
@@ -171,6 +235,7 @@ class GameEngine {
      * デバッグ情報の描画
      */
     renderDebugInfo() {
+        if (!this.debugMode) return;
         this.context.fillStyle = '#ecf0f1';
         this.context.font = '12px Arial';
         this.context.textAlign = 'left';
@@ -223,6 +288,13 @@ class GameEngine {
             width: this.canvas.width,
             height: this.canvas.height
         };
+    }
+
+    /**
+     * 現在のスケール比率を取得
+     */
+    getCanvasScale() {
+        return this.currentScale || 1;
     }
 
     /**

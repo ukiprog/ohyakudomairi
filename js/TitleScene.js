@@ -16,17 +16,13 @@ class TitleScene extends Scene {
         this.nameMaxLength = 20;
         this.wishMaxLength = 100;
         
-        // UI要素の位置とサイズ
-        this.ui = {
-            title: { x: 400, y: 100 },
-            nameLabel: { x: 200, y: 220 },
-            nameInput: { x: 200, y: 250, width: 400, height: 30 },
-            wishLabel: { x: 200, y: 320 },
-            wishInput: { x: 200, y: 350, width: 400, height: 60 },
-            startButton: { x: 350, y: 470, width: 100, height: 40 },
-            errorMessage: { x: 400, y: 540 }
-        };
-        
+        // UI要素はrenderのたびにcanvasサイズから計算する
+        this.ui = {};
+
+        // UIレイアウト計算に使用した最後のキャンバスサイズ
+        this.lastCanvasWidth = null;
+        this.lastCanvasHeight = null;
+
         // マウス状態
         this.mouseX = 0;
         this.mouseY = 0;
@@ -48,6 +44,23 @@ class TitleScene extends Scene {
         this.handleKeyPress = this.handleKeyPress.bind(this);
         this.handleMouseClick = this.handleMouseClick.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
+    }
+
+    /**
+     * canvasサイズに基づいてUI座標を再計算
+     */
+    recalcUI(w, h) {
+        const padX = Math.max(w * 0.08, 20);
+        const fieldW = w - padX * 2;
+        this.ui = {
+            title:       { x: w / 2, y: h * 0.16 },
+            nameLabel:   { x: padX,  y: h * 0.36 },
+            nameInput:   { x: padX,  y: h * 0.42, width: fieldW, height: Math.max(36, h * 0.07) },
+            wishLabel:   { x: padX,  y: h * 0.55 },
+            wishInput:   { x: padX,  y: h * 0.61, width: fieldW, height: Math.max(52, h * 0.11) },
+            startButton: { x: w / 2 - fieldW * 0.25, y: h * 0.79, width: fieldW * 0.5, height: Math.max(44, h * 0.08) },
+            errorMessage:{ x: w / 2, y: h * 0.93 }
+        };
     }
     
     /**
@@ -79,6 +92,10 @@ class TitleScene extends Scene {
         // 入力フィールドをアクティブに
         this.isInputActive = true;
         this.currentInputField = 'name';
+        
+        // タッチコントロールはタイトル画面では非表示
+        const touchControls = document.getElementById('touch-controls');
+        if (touchControls) touchControls.classList.remove('visible');
         
         console.log('TitleScene entered');
     }
@@ -123,11 +140,21 @@ class TitleScene extends Scene {
      * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
      */
     render(context) {
+        const w = context.canvas.width;
+        const h = context.canvas.height;
+
+        // キャンバスサイズが変化した場合のみUIレイアウトを再計算する
+        if (this.lastCanvasWidth !== w || this.lastCanvasHeight !== h) {
+            this.recalcUI(w, h);
+            this.lastCanvasWidth = w;
+            this.lastCanvasHeight = h;
+        }
+
         // 背景
-        this.renderBackground(context);
+        this.renderBackground(context, w, h);
         
         // タイトル
-        this.renderTitle(context);
+        this.renderTitle(context, w, h);
         
         // 入力フォーム
         this.renderInputForm(context);
@@ -144,104 +171,66 @@ class TitleScene extends Scene {
     /**
      * 背景の描画
      */
-    renderBackground(context) {
-        // グラデーション背景
-        const gradient = context.createLinearGradient(0, 0, 0, 600);
+    renderBackground(context, w, h) {
+        const gradient = context.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, '#2c3e50');
         gradient.addColorStop(1, '#34495e');
-        
         context.fillStyle = gradient;
-        context.fillRect(0, 0, 800, 600);
-        
-        // 美しい鳥居のデザイン
-        this.renderTorii(context);
+        context.fillRect(0, 0, w, h);
+        this.renderTorii(context, w, h);
     }
-    
-    /**
-     * 鳥居の描画
-     */
-    renderTorii(context) {
-        const centerX = 400;
-        const toriiY = 30;
-        
-        // 鳥居の色（朱色）
+
+    renderTorii(context, w, h) {
+        const centerX = w / 2;
+        const toriiY = h * 0.03;
+        const scale = Math.min(w / 800, h / 600);
+
         context.fillStyle = '#e74c3c';
         context.strokeStyle = '#c0392b';
         context.lineWidth = 2;
-        
-        // 上部の横木（笠木）
-        const kasagiWidth = 120;
-        const kasagiHeight = 8;
+
+        const kasagiWidth = 120 * scale;
+        const kasagiHeight = 8 * scale;
         context.fillRect(centerX - kasagiWidth/2, toriiY, kasagiWidth, kasagiHeight);
         context.strokeRect(centerX - kasagiWidth/2, toriiY, kasagiWidth, kasagiHeight);
-        
-        // 中間の横木（貫）
-        const nukiWidth = 100;
-        const nukiHeight = 6;
-        const nukiY = toriiY + 25;
+
+        const nukiWidth = 100 * scale;
+        const nukiHeight = 6 * scale;
+        const nukiY = toriiY + 25 * scale;
         context.fillRect(centerX - nukiWidth/2, nukiY, nukiWidth, nukiHeight);
-        context.strokeRect(centerX - nukiWidth/2, nukiY, nukiWidth, nukiHeight);
-        
-        // 左の柱
-        const pillarWidth = 8;
-        const pillarHeight = 45;
-        const leftPillarX = centerX - 40;
-        context.fillRect(leftPillarX, toriiY, pillarWidth, pillarHeight);
-        context.strokeRect(leftPillarX, toriiY, pillarWidth, pillarHeight);
-        
-        // 右の柱
-        const rightPillarX = centerX + 32;
-        context.fillRect(rightPillarX, toriiY, pillarWidth, pillarHeight);
-        context.strokeRect(rightPillarX, toriiY, pillarWidth, pillarHeight);
-        
-        // 笠木の両端の装飾（反り上がり）
-        context.beginPath();
-        context.moveTo(centerX - kasagiWidth/2 - 3, toriiY + kasagiHeight);
-        context.lineTo(centerX - kasagiWidth/2, toriiY + kasagiHeight - 2);
-        context.lineTo(centerX - kasagiWidth/2, toriiY + kasagiHeight);
-        context.closePath();
-        context.fill();
-        context.stroke();
-        
-        context.beginPath();
-        context.moveTo(centerX + kasagiWidth/2 + 3, toriiY + kasagiHeight);
-        context.lineTo(centerX + kasagiWidth/2, toriiY + kasagiHeight - 2);
-        context.lineTo(centerX + kasagiWidth/2, toriiY + kasagiHeight);
-        context.closePath();
-        context.fill();
-        context.stroke();
-        
-        // 影の効果
-        context.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        context.fillRect(centerX - kasagiWidth/2 + 2, toriiY + kasagiHeight, kasagiWidth, 2);
-        context.fillRect(centerX - nukiWidth/2 + 2, nukiY + nukiHeight, nukiWidth, 1);
-        context.fillRect(leftPillarX + 2, toriiY + pillarHeight, pillarWidth, 2);
-        context.fillRect(rightPillarX + 2, toriiY + pillarHeight, pillarWidth, 2);
+
+        const pillarWidth = 8 * scale;
+        const pillarHeight = 45 * scale;
+        context.fillRect(centerX - 40 * scale, toriiY, pillarWidth, pillarHeight);
+        context.fillRect(centerX + 32 * scale, toriiY, pillarWidth, pillarHeight);
     }
     
     /**
      * タイトルの描画
      */
-    renderTitle(context) {
+    renderTitle(context, w, h) {
+        // Allow w and h to be optionally passed in; fall back to canvas size for backwards compatibility
+        if (typeof w !== 'number') {
+            w = context.canvas.width;
+        }
+        if (typeof h !== 'number') {
+            h = context.canvas.height;
+        }
+        const fontSize = Math.max(24, Math.min(44, w * 0.055));
         context.fillStyle = '#ecf0f1';
-        context.font = 'bold 32px Arial';
+        context.font = `bold ${fontSize}px Arial`;
         context.textAlign = 'center';
         context.fillText('御百度参り', this.ui.title.x, this.ui.title.y);
         
-        context.font = '16px Arial';
-        context.fillText('Ohyakudomairi', this.ui.title.x, this.ui.title.y + 40);
+        const subSize = Math.max(14, fontSize * 0.5);
+        context.font = `${subSize}px Arial`;
+        context.fillText('Ohyakudomairi', this.ui.title.x, this.ui.title.y + fontSize * 1.1);
         
-        // 注記部分（アイコン付き、適切な間隔と配置）
-        const noteY = this.ui.title.y + 80;
-        
-        context.font = '13px Arial';
-        context.fillStyle = '#f39c12';
-        context.textAlign = 'center';
-        context.fillText('ℹ️', this.ui.title.x - 100, noteY);
-        
+        const noteY = this.ui.title.y + fontSize * 2;
+        const noteSize = Math.max(11, subSize * 0.85);
+        context.font = `${noteSize}px Arial`;
         context.fillStyle = '#bdc3c7';
-        context.textAlign = 'left';
-        context.fillText('現在は英語入力のみ対応しています', this.ui.title.x - 85, noteY);
+        context.fillText('ℹ 現在は英語入力のみ対応しています', this.ui.title.x, noteY);
     }
     
     /**
@@ -273,9 +262,13 @@ class TitleScene extends Scene {
      * 入力フィールドの描画
      */
     renderInputField(context, label, labelPos, inputPos, value, isActive) {
+        const w = context.canvas.width;
+        const labelSize = Math.max(14, Math.min(20, w * 0.025));
+        const textSize  = Math.max(13, Math.min(18, w * 0.022));
+
         // ラベル
         context.fillStyle = '#ecf0f1';
-        context.font = '16px Arial';
+        context.font = `${labelSize}px Arial`;
         context.textAlign = 'left';
         context.textBaseline = 'top';
         context.fillText(label, labelPos.x, labelPos.y);
@@ -289,16 +282,15 @@ class TitleScene extends Scene {
         
         // テキスト
         context.fillStyle = '#ecf0f1';
-        context.font = '14px Arial';
+        context.font = `${textSize}px Arial`;
         context.textAlign = 'left';
         context.textBaseline = 'top';
         
-        const textX = inputPos.x + 10;
-        const textY = inputPos.y + 8; // テキストの垂直位置を調整
+        const textX = inputPos.x + 12;
+        const textY = inputPos.y + 10;
         
-        // 複数行対応（願い事用）
-        if (inputPos.height > 30) {
-            this.renderMultilineText(context, value, textX, textY, inputPos.width - 20);
+        if (inputPos.height > 40) {
+            this.renderMultilineText(context, value, textX, textY, inputPos.width - 24);
         } else {
             context.fillText(value, textX, textY);
         }
@@ -307,7 +299,7 @@ class TitleScene extends Scene {
         if (isActive && this.showCursor && this.isInputActive) {
             const textWidth = context.measureText(value).width;
             context.fillStyle = '#e74c3c';
-            context.fillRect(textX + textWidth, textY, 2, 16); // カーソルの位置と高さを調整
+            context.fillRect(textX + textWidth, textY, 2, textSize + 2);
         }
     }
     
@@ -342,11 +334,12 @@ class TitleScene extends Scene {
      * スタートボタンの描画
      */
     renderStartButton(context) {
+        const w = context.canvas.width;
         const button = this.ui.startButton;
         const isEnabled = this.validateInput().valid;
         const isHovered = this.isMouseOverButton && isEnabled;
+        const btnFontSize = Math.max(16, Math.min(22, w * 0.027));
         
-        // ボタンの背景（ホバー効果付き）
         if (isEnabled) {
             context.fillStyle = isHovered ? '#2ecc71' : '#27ae60';
         } else {
@@ -354,23 +347,16 @@ class TitleScene extends Scene {
         }
         context.fillRect(button.x, button.y, button.width, button.height);
         
-        // ボタンの枠線
         context.strokeStyle = isEnabled ? '#2ecc71' : '#95a5a6';
         context.lineWidth = isHovered ? 3 : 2;
         context.strokeRect(button.x, button.y, button.width, button.height);
         
-        // ボタンのテキスト
         context.fillStyle = '#ecf0f1';
-        context.font = isHovered ? 'bold 16px Arial' : '16px Arial';
+        context.font = isHovered ? `bold ${btnFontSize}px Arial` : `${btnFontSize}px Arial`;
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(
-            'スタート',
-            button.x + button.width / 2,
-            button.y + button.height / 2
-        );
+        context.fillText('スタート', button.x + button.width / 2, button.y + button.height / 2);
         
-        // カーソルスタイルの変更（視覚的フィードバック）
         if (isHovered) {
             document.body.style.cursor = 'pointer';
         } else if (!this.isMouseOverButton) {
@@ -382,8 +368,9 @@ class TitleScene extends Scene {
      * エラーメッセージの描画
      */
     renderErrorMessage(context) {
+        const w = context.canvas.width;
         context.fillStyle = '#e74c3c';
-        context.font = '14px Arial';
+        context.font = `${Math.max(13, Math.min(18, w * 0.022))}px Arial`;
         context.textAlign = 'center';
         context.fillText(this.errorMessage, this.ui.errorMessage.x, this.ui.errorMessage.y);
     }
@@ -448,11 +435,15 @@ class TitleScene extends Scene {
     handleMouseClick(event) {
         if (!this.isInputActive) return;
         
-        // Canvasの位置を取得
         const canvas = document.getElementById('game-canvas');
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        // タッチイベントも考慮
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        const scaleX = canvas.width  / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top)  * scaleY;
         
         // 名前入力フィールドのクリック判定
         const nameInput = this.ui.nameInput;
@@ -487,11 +478,12 @@ class TitleScene extends Scene {
     handleMouseMove(event) {
         if (!this.isInputActive) return;
         
-        // Canvasの位置を取得
         const canvas = document.getElementById('game-canvas');
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const scaleX = canvas.width  / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (event.clientX - rect.left) * scaleX;
+        const y = (event.clientY - rect.top)  * scaleY;
         
         this.mouseX = x;
         this.mouseY = y;
@@ -576,6 +568,12 @@ class TitleScene extends Scene {
             return;
         }
         
+        // AudioContextを再開（ブラウザのautoplay policy対応）
+        if (window.audioManager) {
+            window.audioManager.resumeAudioContext();
+            console.log('AudioContext resumed on game start');
+        }
+        
         // 入力データを準備
         const gameData = {
             playerName: this.playerName.trim(),
@@ -584,12 +582,14 @@ class TitleScene extends Scene {
         
         console.log('Starting game with data:', gameData);
         
-        // GameSceneに遷移（まだ実装されていないので、後のタスクで実装）
-        // 現在はコンソールにログを出力するのみ
-        console.log('Game would start here with:', gameData);
-        
-        // TODO: 実際のGameSceneへの遷移は後のタスクで実装
-        // this.gameEngine.getSceneManager().switchScene('game', gameData);
+        // GameSceneに遷移
+        const sceneManager = this.gameEngine?.getSceneManager();
+        if (sceneManager && sceneManager.hasScene('game')) {
+            sceneManager.switchScene('game', gameData);
+        } else {
+            console.warn('GameScene not available, staying in TitleScene');
+            this.showErrorMessage('ゲームシーンが利用できません');
+        }
     }
     
     /**
