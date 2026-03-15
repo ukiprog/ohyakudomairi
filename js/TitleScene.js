@@ -18,6 +18,10 @@ class TitleScene extends Scene {
         
         // UI要素はrenderのたびにcanvasサイズから計算する
         this.ui = {};
+
+        // UIレイアウト計算に使用した最後のキャンバスサイズ
+        this.lastCanvasWidth = null;
+        this.lastCanvasHeight = null;
         
         // マウス状態
         this.mouseX = 0;
@@ -138,7 +142,13 @@ class TitleScene extends Scene {
     render(context) {
         const w = context.canvas.width;
         const h = context.canvas.height;
-        this.recalcUI(w, h);
+
+        // キャンバスサイズが変化した場合のみUIレイアウトを再計算する
+        if (this.lastCanvasWidth !== w || this.lastCanvasHeight !== h) {
+            this.recalcUI(w, h);
+            this.lastCanvasWidth = w;
+            this.lastCanvasHeight = h;
+        }
 
         // 背景
         this.renderBackground(context, w, h);
