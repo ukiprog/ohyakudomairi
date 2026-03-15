@@ -198,9 +198,14 @@ class TitleScene extends Scene {
     /**
      * タイトルの描画
      */
-    renderTitle(context) {
-        const w = context.canvas.width;
-        const h = context.canvas.height;
+    renderTitle(context, w, h) {
+        // Allow w and h to be optionally passed in; fall back to canvas size for backwards compatibility
+        if (typeof w !== 'number') {
+            w = context.canvas.width;
+        }
+        if (typeof h !== 'number') {
+            h = context.canvas.height;
+        }
         const fontSize = Math.max(24, Math.min(44, w * 0.055));
         context.fillStyle = '#ecf0f1';
         context.font = `bold ${fontSize}px Arial`;
