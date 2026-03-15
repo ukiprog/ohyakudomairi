@@ -355,7 +355,18 @@ function showError(message) {
     if (canvas) canvas.style.display = 'none';
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
-        loadingScreen.innerHTML = `<p style="color: #e74c3c; font-size: 18px; text-align: center; padding: 20px;">${message}</p>`;
+        // 既存のコンテンツをクリア
+        loadingScreen.innerHTML = '';
+
+        // エラーメッセージ用の要素を作成し、テキストとして挿入（XSS 対策）
+        const messageElement = document.createElement('p');
+        messageElement.style.color = '#e74c3c';
+        messageElement.style.fontSize = '18px';
+        messageElement.style.textAlign = 'center';
+        messageElement.style.padding = '20px';
+        messageElement.textContent = message;
+
+        loadingScreen.appendChild(messageElement);
         loadingScreen.classList.remove('hidden');
     }
 }
