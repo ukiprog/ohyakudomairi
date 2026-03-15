@@ -13,6 +13,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded, initializing game...');
     
     try {
+        // localStorage利用可能チェック（プライベートブラウジング・容量超過対応）
+        try {
+            localStorage.setItem('__test__', '1');
+            localStorage.removeItem('__test__');
+        } catch (e) {
+            console.warn('localStorage not available, game will run without data persistence:', e);
+        }
+
         // GameEngineの初期化
         gameEngine = new GameEngine('game-canvas');
         gameEngine.init();
@@ -343,9 +351,11 @@ function hideLoadingScreen() {
  * エラーメッセージを表示
  */
 function showError(message) {
+    const canvas = document.getElementById('game-canvas');
+    if (canvas) canvas.style.display = 'none';
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
-        loadingScreen.innerHTML = `<p style="color: #e74c3c;">${message}</p>`;
+        loadingScreen.innerHTML = `<p style="color: #e74c3c; font-size: 18px; text-align: center; padding: 20px;">${message}</p>`;
         loadingScreen.classList.remove('hidden');
     }
 }

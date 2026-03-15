@@ -15,7 +15,7 @@ class PlayerCharacter {
         this.height = 32;
         
         // 移動速度（ピクセル/秒）
-        this.moveSpeed = 120;
+        this.moveSpeed = 300;
         
         // 移動状態
         this.isMoving = false;

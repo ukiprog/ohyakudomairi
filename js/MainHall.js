@@ -376,21 +376,22 @@ class MainHall extends EnvironmentObject {
             return false;
         }
         
-        // 社殿は階段部分も含めた大きめの当たり判定を持つ
-        const expandedBounds = {
-            x: this.x - 15,
-            y: this.y - 15,
-            width: this.width + 30,
-            height: this.height + 30
+        // 社殿の下端（階段・賽銭箱エリア）に到達した時だけ反応する
+        // 横方向は社殿の幅、縦方向は社殿の下端付近のみ
+        const reachZone = {
+            x: this.x - 10,
+            y: this.y + this.height - 40,  // 社殿下端から40px上
+            width: this.width + 20,
+            height: 50                      // 下端から50pxの帯
         };
         
         const playerBounds = player.getBounds();
         
         return (
-            playerBounds.x < expandedBounds.x + expandedBounds.width &&
-            playerBounds.x + playerBounds.width > expandedBounds.x &&
-            playerBounds.y < expandedBounds.y + expandedBounds.height &&
-            playerBounds.y + playerBounds.height > expandedBounds.y
+            playerBounds.x < reachZone.x + reachZone.width &&
+            playerBounds.x + playerBounds.width > reachZone.x &&
+            playerBounds.y < reachZone.y + reachZone.height &&
+            playerBounds.y + playerBounds.height > reachZone.y
         );
     }
     
