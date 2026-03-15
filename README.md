@@ -1,4 +1,4 @@
-# 御百度参り - Omiyamairi Web Game
+# 御百度参り - Ohyakudomairi Web Game
 
 日本の伝統的な神社参拝の習慣「百度参り」をブラウザで体験できる2Dゲームです。
 
