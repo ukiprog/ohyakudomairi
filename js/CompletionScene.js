@@ -46,7 +46,19 @@ class CompletionScene extends Scene {
     init() {
         super.init();
         
-        // 神様キャラクターを画面中央に配置（canvasサイズはonEnterで確定するためデフォルト値を使用）
+        // 背景パーティクルの初期化
+        this.initBackgroundParticles();
+        
+        console.log('CompletionScene initialized');
+    }
+    
+    /**
+     * シーンがアクティブになった時の処理
+     */
+    onEnter() {
+        super.onEnter();
+        
+        // 神様キャラクターを再生成して状態をリセット
         const canvas = document.getElementById('game-canvas');
         const cw = canvas ? canvas.width  : 800;
         const ch = canvas ? canvas.height : 600;
@@ -61,18 +73,6 @@ class CompletionScene extends Scene {
         this.deity.setOnBlessingComplete(() => {
             this.onBlessingComplete();
         });
-        
-        // 背景パーティクルの初期化
-        this.initBackgroundParticles();
-        
-        console.log('CompletionScene initialized');
-    }
-    
-    /**
-     * シーンがアクティブになった時の処理
-     */
-    onEnter() {
-        super.onEnter();
         
         // 完了時刻を記録
         this.completionTime = new Date();

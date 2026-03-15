@@ -78,10 +78,14 @@ class GameScene extends Scene {
             skyHeight
         );
 
+        // reset() で再利用できるよう初期位置を保存
+        this.playerInitialX = canvasWidth / 2 - 16;
+        this.playerInitialY = pathBottom - 160;
+
         // プレイヤー初期位置: 百度石の少し上
         this.playerCharacter = new PlayerCharacter(
-            canvasWidth / 2 - 16,
-            pathBottom - 160
+            this.playerInitialX,
+            this.playerInitialY
         );
 
         // 可動範囲をcanvasサイズに合わせて設定
@@ -458,8 +462,8 @@ class GameScene extends Scene {
         // プレイヤーキャラクターを初期位置に戻す
         if (this.playerCharacter) {
             this.playerCharacter.setPosition(
-                400 - 16,  // 中央
-                600 - 180  // 百度石の少し上
+                this.playerInitialX,
+                this.playerInitialY
             );
         }
         

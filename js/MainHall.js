@@ -317,16 +317,6 @@ class MainHall extends EnvironmentObject {
         context.beginPath();
         context.ellipse(centerX + 40, this.y + 80, 15, 20, 0, 0, Math.PI * 2);
         context.fill();
-        
-        // 提灯の紐
-        context.strokeStyle = '#8B4513';
-        context.lineWidth = 2;
-        context.beginPath();
-        context.moveTo(centerX - 40, this.y + 60);
-        context.lineTo(centerX - 40, this.y + 60);
-        context.moveTo(centerX + 40, this.y + 60);
-        context.lineTo(centerX + 40, this.y + 60);
-        context.stroke();
     }
     
     /**
