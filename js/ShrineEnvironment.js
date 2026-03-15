@@ -30,70 +30,70 @@ class ShrineEnvironment {
      * 環境レイアウトの設定
      */
     setupEnvironmentLayout() {
-        // 参道の設定（社殿まで）
+        // 空の高さはcanvasの33%
+        const skyHeight = Math.round(this.height * 0.33);
+
+        // 参道は固定460px
+        const PATH_HEIGHT = 450;
+        const pathTop    = skyHeight + 20;
+        const pathBottom = pathTop + PATH_HEIGHT;
+
         this.pathConfig = {
             x: this.width / 2 - 25,
-            y: 220, // 社殿の下から開始
+            y: pathTop,
             width: 50,
-            height: 270, // 百度石まで
+            height: PATH_HEIGHT,
             segments: []
         };
 
-        // 参道のセグメントを作成
         const segmentHeight = 30;
-        for (let i = 0; i < Math.ceil(this.pathConfig.height / segmentHeight); i++) {
-            this.pathConfig.segments.push({
-                y: i * segmentHeight,
-                height: segmentHeight
-            });
+        for (let i = 0; i < Math.ceil(PATH_HEIGHT / segmentHeight); i++) {
+            this.pathConfig.segments.push({ y: i * segmentHeight, height: segmentHeight });
         }
 
-        // 鳥居の設定（神社の前に配置、高さを高く）
         this.toriiConfig = {
             x: this.width / 2 - 60,
-            y: 180, // 神社の前
+            y: skyHeight - 20,
             width: 120,
-            height: 100 // 高さを大幅に増加
+            height: 100
         };
 
-        // 石灯籠の設定（間隔を良い感じに調整）
-        this.lanternPositions = [
-            { x: this.width / 2 - 80, y: 180 },
-            { x: this.width / 2 + 50, y: 180 },
-            { x: this.width / 2 - 80, y: 260 },
-            { x: this.width / 2 + 50, y: 260 },
-            { x: this.width / 2 - 80, y: 340 },
-            { x: this.width / 2 + 50, y: 340 },
-            { x: this.width / 2 - 80, y: 420 },
-            { x: this.width / 2 + 50, y: 420 }
-        ];
+        const lanternCount = 4;
+        const lanternStep  = PATH_HEIGHT / lanternCount;
+        this.lanternPositions = [];
+        for (let i = 0; i < lanternCount; i++) {
+            const ly = pathTop + i * lanternStep;
+            this.lanternPositions.push({ x: this.width / 2 - 80, y: ly });
+            this.lanternPositions.push({ x: this.width / 2 + 50, y: ly });
+        }
 
-        // 木々の設定（地面に配置）
-        const groundStartY = this.height * 0.33;
+        const groundStartY = skyHeight;
         this.treePositions = [
-            { x: 50, y: groundStartY + 50, size: 'large' },
-            { x: 150, y: groundStartY + 80, size: 'medium' },
-            { x: 80, y: groundStartY + 120, size: 'small' },
-            { x: this.width - 80, y: groundStartY + 60, size: 'large' },
-            { x: this.width - 120, y: groundStartY + 90, size: 'medium' },
-            { x: this.width - 60, y: groundStartY + 130, size: 'small' },
-            { x: 30, y: groundStartY + 150, size: 'medium' },
-            { x: this.width - 40, y: groundStartY + 160, size: 'small' }
+            { x: 50,               y: groundStartY + 50,  size: 'large'  },
+            { x: 150,              y: groundStartY + 80,  size: 'medium' },
+            { x: 80,               y: groundStartY + 120, size: 'small'  },
+            { x: this.width - 80,  y: groundStartY + 60,  size: 'large'  },
+            { x: this.width - 120, y: groundStartY + 90,  size: 'medium' },
+            { x: this.width - 60,  y: groundStartY + 130, size: 'small'  },
+            { x: 30,               y: groundStartY + 150, size: 'medium' },
+            { x: this.width - 40,  y: groundStartY + 160, size: 'small'  }
         ];
 
-        // 狛犬の設定（百度石の両脇、石灯籠と重ならない位置）
+        // 狛犬は参道の下端付近
         this.komaInuPositions = [
-            { x: this.width / 2 - 100, y: 470, type: 'left' },  // 左の狛犬（百度石の左脇）
-            { x: this.width / 2 + 65, y: 470, type: 'right' }   // 右の狛犬（百度石の右脇）
+            { x: this.width / 2 - 100, y: pathBottom - 10, type: 'left'  },
+            { x: this.width / 2 + 65,  y: pathBottom - 10, type: 'right' }
         ];
 
-        // 雲の設定
         this.cloudPositions = [
-            { x: 100, y: 30, size: 'large', speed: 0.2 },
+            { x: 100, y: 30, size: 'large',  speed: 0.2  },
             { x: 300, y: 50, size: 'medium', speed: 0.15 },
-            { x: 600, y: 25, size: 'small', speed: 0.3 },
-            { x: 450, y: 70, size: 'medium', speed: 0.1 }
+            { x: 600, y: 25, size: 'small',  speed: 0.3  },
+            { x: 450, y: 70, size: 'medium', speed: 0.1  }
         ];
+
+        this.skyHeight  = skyHeight;
+        this.pathBottom = pathBottom;
     }
 
     /**
@@ -159,23 +159,18 @@ class ShrineEnvironment {
      * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
      */
     renderBackground(context) {
-        // 上部3分の1を空、下部3分の2を地面にする
-        const skyHeight = this.height * 0.33;
+        const skyHeight = this.skyHeight || 200;
 
-        // 空のグラデーション
         const skyGradient = context.createLinearGradient(0, 0, 0, skyHeight);
-        skyGradient.addColorStop(0, '#87CEEB'); // 明るい空色
-        skyGradient.addColorStop(1, '#B0E0E6'); // 薄い青
-
+        skyGradient.addColorStop(0, '#87CEEB');
+        skyGradient.addColorStop(1, '#B0E0E6');
         context.fillStyle = skyGradient;
         context.fillRect(0, 0, this.width, skyHeight);
 
-        // 地面のグラデーション
         const groundGradient = context.createLinearGradient(0, skyHeight, 0, this.height);
-        groundGradient.addColorStop(0, '#90EE90'); // 明るい緑
-        groundGradient.addColorStop(0.3, '#228B22'); // 森の緑
-        groundGradient.addColorStop(1, '#006400'); // 暗い緑
-
+        groundGradient.addColorStop(0, '#90EE90');
+        groundGradient.addColorStop(0.3, '#228B22');
+        groundGradient.addColorStop(1, '#006400');
         context.fillStyle = groundGradient;
         context.fillRect(0, skyHeight, this.width, this.height - skyHeight);
     }
@@ -215,8 +210,7 @@ class ShrineEnvironment {
      * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
      */
     renderGround(context) {
-        // 地面は背景で既に描画されているので、追加の装飾のみ
-        const groundStartY = this.height * 0.33;
+        const groundStartY = this.skyHeight || 200;
 
         // 静的な草のテクスチャ（アニメーションなし）
         context.fillStyle = '#32CD32';
@@ -402,33 +396,52 @@ class ShrineEnvironment {
 
         // 不規則な石畳のパターンを描画
         const stones = [
-            // 大きめの石
-            { x: config.x + 2, y: config.y + 5, w: 22, h: 18, color: '#E6E6FA' },
-            { x: config.x + 26, y: config.y + 8, w: 20, h: 15, color: '#D3D3D3' },
-            { x: config.x + 5, y: config.y + 25, w: 18, h: 20, color: '#DCDCDC' },
-            { x: config.x + 25, y: config.y + 28, w: 21, h: 17, color: '#E6E6FA' },
-            { x: config.x + 3, y: config.y + 48, w: 20, h: 16, color: '#D3D3D3' },
-            { x: config.x + 25, y: config.y + 50, w: 19, h: 18, color: '#DCDCDC' },
-            { x: config.x + 4, y: config.y + 68, w: 21, h: 15, color: '#E6E6FA' },
-            { x: config.x + 27, y: config.y + 70, w: 18, h: 19, color: '#D3D3D3' },
-            { x: config.x + 2, y: config.y + 88, w: 23, h: 17, color: '#DCDCDC' },
-            { x: config.x + 26, y: config.y + 92, w: 20, h: 16, color: '#E6E6FA' },
-            { x: config.x + 5, y: config.y + 108, w: 19, h: 18, color: '#D3D3D3' },
+            { x: config.x + 2,  y: config.y + 5,   w: 22, h: 18, color: '#E6E6FA' },
+            { x: config.x + 26, y: config.y + 8,   w: 20, h: 15, color: '#D3D3D3' },
+            { x: config.x + 5,  y: config.y + 25,  w: 18, h: 20, color: '#DCDCDC' },
+            { x: config.x + 25, y: config.y + 28,  w: 21, h: 17, color: '#E6E6FA' },
+            { x: config.x + 3,  y: config.y + 48,  w: 20, h: 16, color: '#D3D3D3' },
+            { x: config.x + 25, y: config.y + 50,  w: 19, h: 18, color: '#DCDCDC' },
+            { x: config.x + 4,  y: config.y + 68,  w: 21, h: 15, color: '#E6E6FA' },
+            { x: config.x + 27, y: config.y + 70,  w: 18, h: 19, color: '#D3D3D3' },
+            { x: config.x + 2,  y: config.y + 88,  w: 23, h: 17, color: '#DCDCDC' },
+            { x: config.x + 26, y: config.y + 92,  w: 20, h: 16, color: '#E6E6FA' },
+            { x: config.x + 5,  y: config.y + 108, w: 19, h: 18, color: '#D3D3D3' },
             { x: config.x + 26, y: config.y + 112, w: 21, h: 15, color: '#DCDCDC' },
-            { x: config.x + 3, y: config.y + 128, w: 22, h: 19, color: '#E6E6FA' },
+            { x: config.x + 3,  y: config.y + 128, w: 22, h: 19, color: '#E6E6FA' },
             { x: config.x + 27, y: config.y + 132, w: 18, h: 17, color: '#D3D3D3' },
-            { x: config.x + 4, y: config.y + 148, w: 20, h: 16, color: '#DCDCDC' },
+            { x: config.x + 4,  y: config.y + 148, w: 20, h: 16, color: '#DCDCDC' },
             { x: config.x + 26, y: config.y + 152, w: 19, h: 18, color: '#E6E6FA' },
-            { x: config.x + 2, y: config.y + 168, w: 21, h: 15, color: '#D3D3D3' },
+            { x: config.x + 2,  y: config.y + 168, w: 21, h: 15, color: '#D3D3D3' },
             { x: config.x + 25, y: config.y + 172, w: 22, h: 17, color: '#DCDCDC' },
-            { x: config.x + 5, y: config.y + 188, w: 18, h: 19, color: '#E6E6FA' },
+            { x: config.x + 5,  y: config.y + 188, w: 18, h: 19, color: '#E6E6FA' },
             { x: config.x + 25, y: config.y + 192, w: 20, h: 16, color: '#D3D3D3' },
-            { x: config.x + 3, y: config.y + 208, w: 23, h: 18, color: '#DCDCDC' },
+            { x: config.x + 3,  y: config.y + 208, w: 23, h: 18, color: '#DCDCDC' },
             { x: config.x + 28, y: config.y + 212, w: 17, h: 15, color: '#E6E6FA' },
-            { x: config.x + 4, y: config.y + 228, w: 21, h: 17, color: '#D3D3D3' },
+            { x: config.x + 4,  y: config.y + 228, w: 21, h: 17, color: '#D3D3D3' },
             { x: config.x + 27, y: config.y + 232, w: 19, h: 19, color: '#DCDCDC' },
-            { x: config.x + 2, y: config.y + 248, w: 22, h: 16, color: '#E6E6FA' },
-            { x: config.x + 26, y: config.y + 252, w: 20, h: 18, color: '#D3D3D3' }
+            { x: config.x + 2,  y: config.y + 248, w: 22, h: 16, color: '#E6E6FA' },
+            { x: config.x + 26, y: config.y + 252, w: 20, h: 18, color: '#D3D3D3' },
+            // 270px〜350px の追加石畳
+            { x: config.x + 5,  y: config.y + 270, w: 19, h: 17, color: '#DCDCDC' },
+            { x: config.x + 26, y: config.y + 273, w: 21, h: 16, color: '#E6E6FA' },
+            { x: config.x + 3,  y: config.y + 290, w: 22, h: 18, color: '#D3D3D3' },
+            { x: config.x + 27, y: config.y + 293, w: 18, h: 17, color: '#DCDCDC' },
+            { x: config.x + 4,  y: config.y + 310, w: 20, h: 16, color: '#E6E6FA' },
+            { x: config.x + 26, y: config.y + 313, w: 19, h: 18, color: '#D3D3D3' },
+            { x: config.x + 2,  y: config.y + 330, w: 23, h: 17, color: '#DCDCDC' },
+            { x: config.x + 27, y: config.y + 333, w: 20, h: 15, color: '#E6E6FA' },
+            // 350px〜450px の追加石畳
+            { x: config.x + 5,  y: config.y + 350, w: 20, h: 17, color: '#E6E6FA' },
+            { x: config.x + 27, y: config.y + 353, w: 18, h: 16, color: '#D3D3D3' },
+            { x: config.x + 3,  y: config.y + 370, w: 22, h: 18, color: '#DCDCDC' },
+            { x: config.x + 26, y: config.y + 373, w: 19, h: 17, color: '#E6E6FA' },
+            { x: config.x + 4,  y: config.y + 390, w: 21, h: 16, color: '#D3D3D3' },
+            { x: config.x + 27, y: config.y + 393, w: 18, h: 18, color: '#DCDCDC' },
+            { x: config.x + 2,  y: config.y + 410, w: 23, h: 17, color: '#E6E6FA' },
+            { x: config.x + 27, y: config.y + 413, w: 20, h: 16, color: '#D3D3D3' },
+            { x: config.x + 5,  y: config.y + 430, w: 19, h: 18, color: '#DCDCDC' },
+            { x: config.x + 26, y: config.y + 433, w: 21, h: 15, color: '#E6E6FA' }
         ];
 
         // 各石を描画
@@ -454,15 +467,22 @@ class ShrineEnvironment {
         // context.lineWidth = 2;
         // context.strokeRect(config.x, config.y, config.width, config.height);
 
-        // 石と石の間の隙間に小石や砂を表現
+        // 石と石の間の隙間に小石や砂を表現（固定パターン）
         context.fillStyle = '#DEB887';
-        for (let i = 0; i < 20; i++) {
-            const gapX = config.x + Math.random() * config.width;
-            const gapY = config.y + Math.random() * config.height;
+        const gapPattern = [
+            { rx: 0.3, ry: 0.04 }, { rx: 0.7, ry: 0.10 }, { rx: 0.5, ry: 0.18 },
+            { rx: 0.2, ry: 0.25 }, { rx: 0.8, ry: 0.32 }, { rx: 0.4, ry: 0.40 },
+            { rx: 0.6, ry: 0.47 }, { rx: 0.1, ry: 0.54 }, { rx: 0.9, ry: 0.61 },
+            { rx: 0.35, ry: 0.68 }, { rx: 0.65, ry: 0.75 }, { rx: 0.25, ry: 0.82 },
+            { rx: 0.75, ry: 0.89 }, { rx: 0.5, ry: 0.95 }, { rx: 0.15, ry: 0.12 },
+            { rx: 0.85, ry: 0.20 }, { rx: 0.45, ry: 0.58 }, { rx: 0.55, ry: 0.36 },
+            { rx: 0.3, ry: 0.72 }, { rx: 0.7, ry: 0.85 }
+        ];
+        gapPattern.forEach(p => {
             context.beginPath();
-            context.arc(gapX, gapY, 1, 0, Math.PI * 2);
+            context.arc(config.x + p.rx * config.width, config.y + p.ry * config.height, 1, 0, Math.PI * 2);
             context.fill();
-        }
+        });
     }
 
     /**

@@ -46,10 +46,11 @@ class CompletionScene extends Scene {
     init() {
         super.init();
         
-        // 神様キャラクターを画面中央に配置
-        const centerX = 400 - 16; // 画面幅800の中央
-        const centerY = 200; // 画面上部寄り
-        this.deity = new Deity(centerX, centerY);
+        // 神様キャラクターを画面中央に配置（canvasサイズはonEnterで確定するためデフォルト値を使用）
+        const canvas = document.getElementById('game-canvas');
+        const cw = canvas ? canvas.width  : 800;
+        const ch = canvas ? canvas.height : 600;
+        this.deity = new Deity(cw / 2 - 16, ch * 0.33);
         
         // 神様の登場完了コールバック
         this.deity.setOnAppearanceComplete(() => {
@@ -247,20 +248,19 @@ class CompletionScene extends Scene {
      * 背景の描画
      */
     renderBackground(context) {
-        // グラデーション背景（神聖な雰囲気）
-        const gradient = context.createLinearGradient(0, 0, 0, 600);
+        const w = context.canvas.width;
+        const h = context.canvas.height;
+        const gradient = context.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, '#1a1a2e');
         gradient.addColorStop(0.5, '#16213e');
         gradient.addColorStop(1, '#0f3460');
-        
         context.fillStyle = gradient;
-        context.fillRect(0, 0, 800, 600);
-        
-        // 星のような装飾
+        context.fillRect(0, 0, w, h);
+
         context.fillStyle = 'rgba(255, 255, 255, 0.3)';
         for (let i = 0; i < 50; i++) {
-            const x = (i * 137.5) % 800;
-            const y = (i * 73.3) % 600;
+            const x = (i * 137.5) % w;
+            const y = (i * 73.3)  % h;
             const size = 1 + (i % 3);
             context.fillRect(x, y, size, size);
         }
@@ -270,7 +270,8 @@ class CompletionScene extends Scene {
      * 神様登場フェーズの描画
      */
     renderDeityAppearancePhase(context) {
-        // タイトルテキスト
+        const w = context.canvas.width;
+        const h = context.canvas.height;
         context.save();
         context.globalAlpha = Math.min(1.0, this.phaseTimer / 1000);
         
@@ -278,11 +279,11 @@ class CompletionScene extends Scene {
         context.font = 'bold 36px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText('御百度参り 完了', 400, 450);
+        context.fillText('御百度参り 完了', w / 2, h * 0.75);
         
         context.fillStyle = '#ecf0f1';
         context.font = '20px Arial';
-        context.fillText('神様が現れました', 400, 500);
+        context.fillText('神様が現れました', w / 2, h * 0.83);
         
         context.restore();
     }
@@ -291,29 +292,32 @@ class CompletionScene extends Scene {
      * 祝福メッセージフェーズの描画
      */
     renderBlessingMessagePhase(context) {
+        const w = context.canvas.width;
+        const h = context.canvas.height;
+        const boxW = Math.min(600, w - 40);
+        const boxX = (w - boxW) / 2;
+        const boxY = h * 0.58;
+        const boxH = h * 0.33;
+
         context.save();
         context.globalAlpha = this.messageAlpha;
         
-        // メッセージボックスの背景
         context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.fillRect(100, 350, 600, 200);
+        context.fillRect(boxX, boxY, boxW, boxH);
         
-        // メッセージボックスの枠
         context.strokeStyle = '#f1c40f';
         context.lineWidth = 3;
-        context.strokeRect(100, 350, 600, 200);
+        context.strokeRect(boxX, boxY, boxW, boxH);
         
-        // メッセージテキスト
         context.fillStyle = '#ecf0f1';
         context.font = '18px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'top';
         
-        const startY = 370;
+        const startY = boxY + 20;
         const lineHeight = 28;
-        
         this.messageLines.forEach((line, index) => {
-            context.fillText(line, 400, startY + index * lineHeight);
+            context.fillText(line, w / 2, startY + index * lineHeight);
         });
         
         context.restore();
@@ -323,29 +327,24 @@ class CompletionScene extends Scene {
      * 絵馬フェーズの描画
      */
     renderCertificatePhase(context) {
+        const w = context.canvas.width;
+        const h = context.canvas.height;
         context.save();
         context.globalAlpha = this.certificateAlpha;
         
-        // 絵馬の中心位置
-        const emaX = 400;
-        const emaY = 300;
-        const emaWidth = 300;
-        const emaHeight = 360;
+        const emaX = w / 2;
+        const emaY = h / 2;
+        const emaWidth  = Math.min(300, w * 0.75);
+        const emaHeight = Math.min(360, h * 0.75);
         
-        // 絵馬の形を描画（五角形の家型）
         this.renderEmaShape(context, emaX, emaY, emaWidth, emaHeight);
-        
-        // 絵馬の紐
         this.renderEmaString(context, emaX, emaY - emaHeight / 2);
-        
-        // 絵馬の内容
         this.renderEmaContent(context, emaX, emaY, emaWidth, emaHeight);
         
-        // 再挑戦の案内
         context.fillStyle = '#7f8c8d';
         context.font = '14px Arial';
         context.textAlign = 'center';
-        context.fillText('画面をクリックしてタイトルに戻る', 400, 570);
+        context.fillText('画面をクリックしてタイトルに戻る', w / 2, h - 20);
         
         context.restore();
     }
@@ -552,19 +551,20 @@ class CompletionScene extends Scene {
      * 背景パーティクルの更新
      */
     updateBackgroundParticles(deltaTime) {
+        const canvas = document.getElementById('game-canvas');
+        const cw = canvas ? canvas.width  : 800;
+        const ch = canvas ? canvas.height : 600;
         this.particleTimer += deltaTime;
         
         this.backgroundParticles.forEach(particle => {
             particle.x += particle.vx;
             particle.y += particle.vy;
             
-            // 画面外に出たら反対側から出現
-            if (particle.x < 0) particle.x = 800;
-            if (particle.x > 800) particle.x = 0;
-            if (particle.y < 0) particle.y = 600;
-            if (particle.y > 600) particle.y = 0;
+            if (particle.x < 0)  particle.x = cw;
+            if (particle.x > cw) particle.x = 0;
+            if (particle.y < 0)  particle.y = ch;
+            if (particle.y > ch) particle.y = 0;
             
-            // アルファ値の変動
             particle.alpha = 0.3 + Math.sin(this.particleTimer / 1000 + particle.x) * 0.3;
         });
     }

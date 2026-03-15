@@ -44,6 +44,51 @@ class GameEngine {
         this.context.font = '16px Arial';
         this.context.textAlign = 'left';
         this.context.textBaseline = 'top';
+
+        // ベース解像度（論理サイズ）
+        this.baseWidth = this.canvas.width;   // 800
+        this.baseHeight = this.canvas.height; // 600
+
+        // レスポンシブスケーリングの設定
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+    }
+
+    /**
+     * ウィンドウリサイズ時にCanvasの論理サイズをビューポートに合わせる
+     * デスクトップは最大800x600、モバイルはビューポート全体を使用
+     */
+    handleResize() {
+        const container = this.canvas.parentElement;
+        if (!container) return;
+
+        const viewportWidth  = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // 横はデスクトップ最大800px、縦はビューポート全体を使う
+        const newWidth  = Math.min(viewportWidth, this.baseWidth);
+        const newHeight = viewportHeight;
+
+        this.canvas.width  = newWidth;
+        this.canvas.height = newHeight;
+
+        this.canvas.style.transform = '';
+        this.canvas.style.width  = newWidth  + 'px';
+        this.canvas.style.height = newHeight + 'px';
+
+        container.style.width  = newWidth  + 'px';
+        container.style.height = newHeight + 'px';
+
+        this.context.imageSmoothingEnabled = false;
+
+        this.currentScale  = 1;
+        this.currentWidth  = newWidth;
+        this.currentHeight = newHeight;
+
+        if (this.sceneManager) {
+            this.sceneManager.onResize(newWidth, newHeight);
+        }
     }
 
     /**
@@ -84,6 +129,7 @@ class GameEngine {
     stop() {
         console.log('Stopping GameEngine...');
         this.isRunning = false;
+        window.removeEventListener('resize', this.handleResize);
     }
 
     /**
@@ -223,6 +269,13 @@ class GameEngine {
             width: this.canvas.width,
             height: this.canvas.height
         };
+    }
+
+    /**
+     * 現在のスケール比率を取得
+     */
+    getCanvasScale() {
+        return this.currentScale || 1;
     }
 
     /**

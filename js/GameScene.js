@@ -18,6 +18,7 @@ class GameScene extends Scene {
         this.mainHall = null;
         this.progressTracker = null;
         this.progressUI = null;
+        this.touchControls = null;
         
         // 衝突検出システム
         this.collisionDetector = CollisionDetector;
@@ -52,32 +53,39 @@ class GameScene extends Scene {
      * ゲームコンポーネントの生成（onEnterで呼ぶ）
      */
     setupComponents() {
-        // Canvas サイズを取得
-        const canvasWidth = 800;
-        const canvasHeight = 600;
+        // Canvas の実際のサイズを取得
+        const canvas = document.getElementById('game-canvas');
+        const canvasWidth  = canvas ? canvas.width  : 800;
+        const canvasHeight = canvas ? canvas.height : 600;
         
         // 神社環境の初期化
         this.shrineEnvironment = new ShrineEnvironment(canvasWidth, canvasHeight);
-        
-        // ShrineEnvironmentのレイアウトに合わせた座標
-        // 参道: y=220〜490、地面開始: y=200
-        // 百度石: 参道下端付近
+
+        const skyHeight  = Math.round(canvasHeight * 0.33);
+        const PATH_HEIGHT = 460;
+        const pathTop    = skyHeight + 20;
+        const pathBottom = pathTop + PATH_HEIGHT; // 参道の下端
+
+        // 百度石: 参道の下端の上（参道に乗っている）
         this.hyakudoStone = new HyakudoStone(
-            canvasWidth / 2 - 30,  // 中央
-            canvasHeight - 120     // y=480（参道下端付近）
+            canvasWidth / 2 - 30,
+            pathBottom - 70  // 百度石の高さ70pxぶん上
         );
-        
-        // 社殿: 参道上端付近（地面の上）
+
+        // 社殿: 空の直下
         this.mainHall = new MainHall(
-            canvasWidth / 2 - 100, // 中央
-            200                    // y=200（地面開始ライン）
+            canvasWidth / 2 - 100,
+            skyHeight
         );
-        
-        // プレイヤーキャラクターの初期化（百度石の近く）
+
+        // プレイヤー初期位置: 百度石の少し上
         this.playerCharacter = new PlayerCharacter(
-            canvasWidth / 2 - 16,  // 中央
-            canvasHeight - 200     // 百度石の少し上
+            canvasWidth / 2 - 16,
+            pathBottom - 160
         );
+
+        // 可動範囲をcanvasサイズに合わせて設定
+        this.playerCharacter.setBounds(0, skyHeight, canvasWidth, canvasHeight);
         
         // audioManagerを最新の参照で取得（非同期初期化後に確実に取得）
         this.audioManager = window.audioManager || null;
@@ -88,6 +96,9 @@ class GameScene extends Scene {
         
         // 進捗UIの初期化
         this.progressUI = new ProgressUI(canvasWidth, canvasHeight);
+        
+        // タッチコントロールの初期化
+        this.touchControls = new TouchControls(this.playerCharacter);
         
         // 環境オブジェクトを環境に追加
         this.shrineEnvironment.addEnvironmentObject(this.hyakudoStone);
@@ -156,6 +167,11 @@ class GameScene extends Scene {
             this.playerCharacter.setupInputListeners();
         }
         
+        // タッチコントロールを表示（タッチデバイス・小画面のみ）
+        if (this.touchControls) {
+            this.touchControls.autoShow();
+        }
+        
         console.log('GameScene entered');
         console.log(`Player: ${this.playerName}, Wish: ${this.playerWish}`);
     }
@@ -169,6 +185,11 @@ class GameScene extends Scene {
         // プレイヤーキャラクターの入力リスナーを削除
         if (this.playerCharacter) {
             this.playerCharacter.removeInputListeners();
+        }
+        
+        // タッチコントロールを非表示
+        if (this.touchControls) {
+            this.touchControls.hide();
         }
         
         // コンポーネントを破棄（次回onEnterで再生成）
@@ -192,6 +213,10 @@ class GameScene extends Scene {
         if (this.progressUI) {
             this.progressUI.destroy();
             this.progressUI = null;
+        }
+        if (this.touchControls) {
+            this.touchControls.destroy();
+            this.touchControls = null;
         }
         this.hyakudoStone = null;
         this.mainHall = null;
@@ -330,30 +355,27 @@ class GameScene extends Scene {
      * @param {CanvasRenderingContext2D} context
      */
     renderPlayerInfo(context) {
+        const w = context.canvas.width;
         context.save();
         
-        // 背景パネル（往復回数の上に配置、y=100の上）
         context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.fillRect(10, 50, 320, 50);
+        context.fillRect(10, 50, Math.min(320, w - 20), 50);
         context.strokeStyle = '#3498db';
         context.lineWidth = 2;
-        context.strokeRect(10, 50, 320, 50);
+        context.strokeRect(10, 50, Math.min(320, w - 20), 50);
         
         context.font = '14px Arial';
         context.textAlign = 'left';
         context.textBaseline = 'top';
         
-        // 名前
         context.fillStyle = '#bdc3c7';
         context.fillText('名前:', 20, 60);
         context.fillStyle = '#ecf0f1';
         context.fillText(this.playerName, 65, 60);
         
-        // 願い事
         context.fillStyle = '#bdc3c7';
         context.fillText('願い事:', 20, 80);
         context.fillStyle = '#f39c12';
-        // 長い場合は切り詰める
         const wish = this.playerWish.length > 20 ? this.playerWish.slice(0, 20) + '…' : this.playerWish;
         context.fillText(wish, 75, 80);
         

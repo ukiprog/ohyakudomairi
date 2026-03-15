@@ -104,13 +104,16 @@ class ProgressUI {
      * @param {number} progressPercentage - 進捗率
      */
     render(context, currentCount, remainingCount, progressPercentage) {
-        // 進捗情報テキストの描画
+        const w = context.canvas.width;
+        const h = context.canvas.height;
+        // canvasサイズが変わった場合に追従
+        if (w !== this.canvasWidth || h !== this.canvasHeight) {
+            this.canvasWidth  = w;
+            this.canvasHeight = h;
+            this.progressBarWidth = Math.min(300, w - 40);
+        }
         this.renderProgressText(context, currentCount, remainingCount, progressPercentage);
-        
-        // 進捗バーの描画
         this.renderProgressBar(context, progressPercentage);
-        
-        // 中間メッセージの描画
         this.renderMidpointMessage(context);
     }
     

@@ -78,13 +78,7 @@ class PlayerCharacter {
         document.addEventListener('keydown', this.handleKeyDown);
         document.addEventListener('keyup', this.handleKeyUp);
         
-        // タッチ入力
-        const canvas = document.getElementById('game-canvas');
-        if (canvas) {
-            canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
-            canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
-            canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
-        }
+        // タッチ入力はTouchControlsクラスが管理するため、ここでは登録しない
         
         console.log('PlayerCharacter input listeners setup');
     }
@@ -95,13 +89,6 @@ class PlayerCharacter {
     removeInputListeners() {
         document.removeEventListener('keydown', this.handleKeyDown);
         document.removeEventListener('keyup', this.handleKeyUp);
-        
-        const canvas = document.getElementById('game-canvas');
-        if (canvas) {
-            canvas.removeEventListener('touchstart', this.handleTouchStart);
-            canvas.removeEventListener('touchend', this.handleTouchEnd);
-            canvas.removeEventListener('touchmove', this.handleTouchMove);
-        }
         
         console.log('PlayerCharacter input listeners removed');
     }
