@@ -110,13 +110,13 @@
     - データ整合性の確認
     - _Requirements: 6.3, 6.4_
 
-- [ ] 9. GameSceneの統合と完成
-  - [ ] 9.1 メインゲームシーンの実装
+- [x] 9. GameSceneの統合と完成
+  - [x] 9.1 メインゲームシーンの実装
     - 全コンポーネントをGameSceneに統合
     - ゲームループでの更新・描画処理
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
   
-  - [ ] 9.2 シーン間のデータ受け渡し
+  - [x] 9.2 シーン間のデータ受け渡し
     - TitleSceneからGameSceneへの名前・願い事データ転送
     - GameSceneからCompletionSceneへの完了データ転送
     - _Requirements: 3.3, 3.4_

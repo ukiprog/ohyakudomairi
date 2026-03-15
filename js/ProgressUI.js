@@ -7,9 +7,9 @@ class ProgressUI {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         
-        // UI配置設定
+        // UI配置設定（名前・願い事パネルの下に配置）
         this.progressBarX = 20;
-        this.progressBarY = 120;
+        this.progressBarY = 175;  // テキストパネルの下
         this.progressBarWidth = 300;
         this.progressBarHeight = 20;
         
@@ -122,32 +122,29 @@ class ProgressUI {
      * @param {number} progressPercentage - 進捗率
      */
     renderProgressText(context, currentCount, remainingCount, progressPercentage) {
-        // 背景パネル
+        // 背景パネル（テキスト2行 + 進捗バー + 50ラベルを含む高さ）
         context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.fillRect(10, 100, 320, 70);
-        
-        // 枠線
+        context.fillRect(10, 100, 320, 90);
         context.strokeStyle = '#3498db';
         context.lineWidth = 2;
-        context.strokeRect(10, 100, 320, 70);
+        context.strokeRect(10, 100, 320, 90);
         
-        // 進捗テキスト
-        context.fillStyle = '#ecf0f1';
-        context.font = 'bold 16px Arial';
         context.textAlign = 'left';
         context.textBaseline = 'top';
         
-        // 現在の往復回数
-        context.fillText(`往復回数: ${currentCount} / 100`, 20, 110);
+        // 往復回数
+        context.fillStyle = '#ecf0f1';
+        context.font = 'bold 16px Arial';
+        context.fillText(`往復回数: ${currentCount} / 100`, 20, 108);
         
         // 残り回数
         context.fillStyle = '#f39c12';
-        context.fillText(`残り: ${remainingCount}回`, 180, 110);
+        context.fillText(`残り: ${remainingCount}回`, 200, 108);
         
         // 進捗率
         context.fillStyle = '#2ecc71';
-        context.font = '14px Arial';
-        context.fillText(`進捗: ${progressPercentage.toFixed(1)}%`, 20, 135);
+        context.font = '13px Arial';
+        context.fillText(`進捗: ${progressPercentage.toFixed(1)}%`, 20, 128);
     }
     
     /**
@@ -156,44 +153,34 @@ class ProgressUI {
      * @param {number} progressPercentage - 進捗率
      */
     renderProgressBar(context, progressPercentage) {
-        // 進捗バーの背景
+        // 進捗バーの背景（パネル内 y=148）
         context.fillStyle = '#34495e';
-        context.fillRect(this.progressBarX, this.progressBarY + 25, this.progressBarWidth, this.progressBarHeight);
+        context.fillRect(this.progressBarX, 148, this.progressBarWidth, this.progressBarHeight);
         
-        // 進捗バーの枠線
         context.strokeStyle = '#7f8c8d';
         context.lineWidth = 1;
-        context.strokeRect(this.progressBarX, this.progressBarY + 25, this.progressBarWidth, this.progressBarHeight);
+        context.strokeRect(this.progressBarX, 148, this.progressBarWidth, this.progressBarHeight);
         
-        // 進捗バーの塗りつぶし（アニメーション付き）
+        // 進捗バーの塗りつぶし
         if (this.progressBarAnimation.currentWidth > 0) {
-            // グラデーション効果
             const gradient = context.createLinearGradient(
-                this.progressBarX, 0, 
+                this.progressBarX, 0,
                 this.progressBarX + this.progressBarWidth, 0
             );
             
             if (progressPercentage < 50) {
-                // 50%未満は青系
                 gradient.addColorStop(0, '#3498db');
                 gradient.addColorStop(1, '#2980b9');
             } else if (progressPercentage < 100) {
-                // 50%以上は緑系
                 gradient.addColorStop(0, '#2ecc71');
                 gradient.addColorStop(1, '#27ae60');
             } else {
-                // 100%は金色
                 gradient.addColorStop(0, '#f1c40f');
                 gradient.addColorStop(1, '#f39c12');
             }
             
             context.fillStyle = gradient;
-            context.fillRect(
-                this.progressBarX, 
-                this.progressBarY + 25, 
-                this.progressBarAnimation.currentWidth, 
-                this.progressBarHeight
-            );
+            context.fillRect(this.progressBarX, 148, this.progressBarAnimation.currentWidth, this.progressBarHeight);
         }
         
         // 50%マーカー
@@ -201,15 +188,15 @@ class ProgressUI {
         context.strokeStyle = '#e74c3c';
         context.lineWidth = 2;
         context.beginPath();
-        context.moveTo(midpointX, this.progressBarY + 20);
-        context.lineTo(midpointX, this.progressBarY + 50);
+        context.moveTo(midpointX, 144);
+        context.lineTo(midpointX, 168);
         context.stroke();
         
-        // 50%ラベル
+        // 50%ラベル（パネル内右端）
         context.fillStyle = '#e74c3c';
-        context.font = '12px Arial';
+        context.font = '11px Arial';
         context.textAlign = 'center';
-        context.fillText('50', midpointX, this.progressBarY + 55);
+        context.fillText('50', midpointX, 172);
     }
     
     /**

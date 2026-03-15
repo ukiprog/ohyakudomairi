@@ -1,32 +1,41 @@
 /**
  * GameScene - メインゲームシーン
- * 神社環境とプレイヤーキャラクターを統合したゲームシーン
+ * 御百度参りのメインゲームプレイを管理
+ * 全コンポーネントを統合し、ゲームループで更新・描画を行う
  */
 class GameScene extends Scene {
     constructor() {
         super('game');
         
-        // プレイヤーキャラクター
-        this.player = null;
-        
-        // 神社環境システム
-        this.shrineEnvironment = null;
-        
-        // 環境オブジェクト
-        this.hyakudoStone = null;
-        this.mainHall = null;
-        
-        // ゲームデータ
+        // プレイヤーデータ
         this.playerName = '';
         this.playerWish = '';
         
-        // プレイヤーの状態追跡
-        this.playerAtHyakudoStone = false;
-        this.playerAtMainHall = false;
-        
-        // 進捗管理システム
+        // ゲームコンポーネント
+        this.shrineEnvironment = null;
+        this.playerCharacter = null;
+        this.hyakudoStone = null;
+        this.mainHall = null;
         this.progressTracker = null;
         this.progressUI = null;
+        
+        // 衝突検出システム
+        this.collisionDetector = CollisionDetector;
+        
+        // 音響システム
+        this.audioManager = window.audioManager || null;
+        
+        // ゲーム状態
+        this.isGameCompleted = false;
+        this.lastCollisionCheck = {
+            hyakudo: false,
+            hall: false
+        };
+        
+        // 完了メッセージ表示
+        this.showCompletionMessage = false;
+        this.completionMessageTimer = 0;
+        this.completionMessageDuration = 3000; // 3秒間表示
         
         console.log('GameScene created');
     }
@@ -36,57 +45,101 @@ class GameScene extends Scene {
      */
     init() {
         super.init();
+        console.log('GameScene initialized');
+    }
+    
+    /**
+     * ゲームコンポーネントの生成（onEnterで呼ぶ）
+     */
+    setupComponents() {
+        // Canvas サイズを取得
+        const canvasWidth = 800;
+        const canvasHeight = 600;
         
-        // 神社環境システムの初期化
-        this.shrineEnvironment = new ShrineEnvironment(800, 600);
+        // 神社環境の初期化
+        this.shrineEnvironment = new ShrineEnvironment(canvasWidth, canvasHeight);
         
-        // 百度石の作成（画面下部、高さ調整）
-        this.hyakudoStone = new HyakudoStone(370, 490);
-        this.hyakudoStone.setOnReachCallback((player, stone) => {
-            this.onPlayerReachHyakudoStone(player, stone);
-        });
-        this.hyakudoStone.setOnLeaveCallback((player, stone) => {
-            this.onPlayerLeaveHyakudoStone(player, stone);
-        });
+        // ShrineEnvironmentのレイアウトに合わせた座標
+        // 参道: y=220〜490、地面開始: y=200
+        // 百度石: 参道下端付近
+        this.hyakudoStone = new HyakudoStone(
+            canvasWidth / 2 - 30,  // 中央
+            canvasHeight - 120     // y=480（参道下端付近）
+        );
         
-        // 社殿の作成（画面上部）
-        this.mainHall = new MainHall(300, 60);
-        this.mainHall.setOnReachCallback((player, hall) => {
-            this.onPlayerReachMainHall(player, hall);
-        });
-        this.mainHall.setOnLeaveCallback((player, hall) => {
-            this.onPlayerLeaveMainHall(player, hall);
-        });
+        // 社殿: 参道上端付近（地面の上）
+        this.mainHall = new MainHall(
+            canvasWidth / 2 - 100, // 中央
+            200                    // y=200（地面開始ライン）
+        );
         
-        // 環境オブジェクトを環境システムに追加
-        this.shrineEnvironment.addEnvironmentObject(this.hyakudoStone);
-        this.shrineEnvironment.addEnvironmentObject(this.mainHall);
+        // プレイヤーキャラクターの初期化（百度石の近く）
+        this.playerCharacter = new PlayerCharacter(
+            canvasWidth / 2 - 16,  // 中央
+            canvasHeight - 200     // 百度石の少し上
+        );
         
-        // プレイヤーキャラクターを作成（百度石の近くに配置）
-        this.player = new PlayerCharacter(400 - 16, 400); 
-        this.player.setBounds(0, 0, 800, 600);
-        this.player.setDebugDisplay(false); // 本格実装なのでデバッグ表示を無効化
+        // audioManagerを最新の参照で取得（非同期初期化後に確実に取得）
+        this.audioManager = window.audioManager || null;
+        this.playerCharacter.audioManager = this.audioManager;
         
         // 進捗管理システムの初期化
         this.progressTracker = new ProgressTracker();
-        this.progressUI = new ProgressUI(800, 600);
+        
+        // 進捗UIの初期化
+        this.progressUI = new ProgressUI(canvasWidth, canvasHeight);
+        
+        // 環境オブジェクトを環境に追加
+        this.shrineEnvironment.addEnvironmentObject(this.hyakudoStone);
+        this.shrineEnvironment.addEnvironmentObject(this.mainHall);
         
         // 進捗トラッカーのコールバック設定
+        this.setupProgressCallbacks();
+        
+        // 百度石と社殿のコールバック設定
+        this.setupEnvironmentCallbacks();
+        
+        console.log('GameScene components setup');
+    }
+    
+    /**
+     * 進捗トラッカーのコールバック設定
+     */
+    setupProgressCallbacks() {
+        // 進捗更新時のコールバック
         this.progressTracker.setOnProgressUpdate((current, remaining) => {
-            this.progressUI.updateProgress(current, remaining, this.progressTracker.getProgressPercentage());
+            this.progressUI.updateProgress(
+                current,
+                remaining,
+                this.progressTracker.getProgressPercentage()
+            );
         });
         
+        // 50往復達成時のコールバック
         this.progressTracker.setOnMidpointReached(() => {
             this.progressUI.showMidpointMessage();
+            console.log('Midpoint reached: 50 round trips!');
         });
         
+        // 100往復完了時のコールバック
         this.progressTracker.setOnCompletion(() => {
-            console.log('御百度参り完了！神様登場の準備...');
-            // CompletionSceneへの遷移処理
-            this.transitionToCompletionScene();
+            this.onGameCompletion();
+        });
+    }
+    
+    /**
+     * 環境オブジェクトのコールバック設定
+     */
+    setupEnvironmentCallbacks() {
+        // 百度石到達時のコールバック
+        this.hyakudoStone.setOnReachCallback(() => {
+            this.progressTracker.onPlayerReachHyakudo();
         });
         
-        console.log('GameScene initialized with shrine environment');
+        // 社殿到達時のコールバック
+        this.mainHall.setOnReachCallback(() => {
+            this.progressTracker.onPlayerReachHall();
+        });
     }
     
     /**
@@ -95,41 +148,16 @@ class GameScene extends Scene {
     onEnter() {
         super.onEnter();
         
-        // 進捗トラッカーをリセット（新しいゲームを開始）
-        if (this.progressTracker) {
-            this.progressTracker.reset();
-            console.log('ProgressTracker reset for new game');
-        }
+        // コンポーネントを生成（audioManagerが確実に初期化された後）
+        this.setupComponents();
         
-        // プレイヤーの位置をリセット
-        if (this.player) {
-            this.player.setPosition(400 - 16, 400);
-            this.player.setupInputListeners();
-            
-            // audioManagerの参照を再設定（音声初期化が非同期のため）
-            if (window.audioManager && !this.player.audioManager) {
-                this.player.audioManager = window.audioManager;
-                console.log('AudioManager reference set for PlayerCharacter');
-            }
-        }
-        
-        // プレイヤーの状態をリセット
-        this.playerAtHyakudoStone = false;
-        this.playerAtMainHall = false;
-        
-        // 環境オブジェクトにもaudioManagerの参照を設定
-        if (window.audioManager) {
-            if (this.hyakudoStone && !this.hyakudoStone.audioManager) {
-                this.hyakudoStone.audioManager = window.audioManager;
-                console.log('AudioManager reference set for HyakudoStone');
-            }
-            if (this.mainHall && !this.mainHall.audioManager) {
-                this.mainHall.audioManager = window.audioManager;
-                console.log('AudioManager reference set for MainHall');
-            }
+        // プレイヤーキャラクターの入力リスナーを設定
+        if (this.playerCharacter) {
+            this.playerCharacter.setupInputListeners();
         }
         
         console.log('GameScene entered');
+        console.log(`Player: ${this.playerName}, Wish: ${this.playerWish}`);
     }
     
     /**
@@ -138,12 +166,42 @@ class GameScene extends Scene {
     onExit() {
         super.onExit();
         
-        // プレイヤーの入力リスナーを削除
-        if (this.player) {
-            this.player.removeInputListeners();
+        // プレイヤーキャラクターの入力リスナーを削除
+        if (this.playerCharacter) {
+            this.playerCharacter.removeInputListeners();
         }
         
+        // コンポーネントを破棄（次回onEnterで再生成）
+        this.destroyComponents();
+        
         console.log('GameScene exited');
+    }
+    
+    /**
+     * コンポーネントの破棄
+     */
+    destroyComponents() {
+        if (this.playerCharacter) {
+            this.playerCharacter.destroy();
+            this.playerCharacter = null;
+        }
+        if (this.shrineEnvironment) {
+            this.shrineEnvironment.destroy();
+            this.shrineEnvironment = null;
+        }
+        if (this.progressUI) {
+            this.progressUI.destroy();
+            this.progressUI = null;
+        }
+        this.hyakudoStone = null;
+        this.mainHall = null;
+        this.progressTracker = null;
+        
+        // ゲーム状態もリセット
+        this.isGameCompleted = false;
+        this.showCompletionMessage = false;
+        this.completionMessageTimer = 0;
+        this.lastCollisionCheck = { hyakudo: false, hall: false };
     }
     
     /**
@@ -152,8 +210,8 @@ class GameScene extends Scene {
      */
     setData(data) {
         if (data) {
-            this.playerName = data.playerName || '';
-            this.playerWish = data.playerWish || '';
+            this.playerName = data.playerName || '参拝者';
+            this.playerWish = data.playerWish || '願い事';
             console.log('GameScene data set:', data);
         }
     }
@@ -163,55 +221,73 @@ class GameScene extends Scene {
      * @param {number} deltaTime - 前フレームからの経過時間（ミリ秒）
      */
     update(deltaTime) {
-        // 神社環境システムの更新
+        // ゲーム完了後は更新を停止
+        if (this.isGameCompleted) {
+            // 完了メッセージのタイマー更新
+            if (this.showCompletionMessage) {
+                this.completionMessageTimer += deltaTime;
+                
+                // 一定時間後にCompletionSceneに遷移
+                if (this.completionMessageTimer >= this.completionMessageDuration) {
+                    this.transitionToCompletionScene();
+                }
+            }
+            return;
+        }
+        
+        // 神社環境の更新
         if (this.shrineEnvironment) {
             this.shrineEnvironment.update(deltaTime);
         }
         
         // プレイヤーキャラクターの更新
-        if (this.player) {
-            this.player.update(deltaTime);
+        if (this.playerCharacter) {
+            this.playerCharacter.update(deltaTime);
         }
         
-        // 進捗管理システムの更新
-        if (this.progressTracker) {
-            // 進捗トラッカー自体は状態変化時のみ更新されるため、
-            // ここでは特別な更新処理は不要
-        }
+        // 衝突判定と相互作用
+        this.checkCollisions();
         
         // 進捗UIの更新
         if (this.progressUI) {
             this.progressUI.update(deltaTime);
         }
-        
-        // プレイヤーと環境オブジェクトの衝突判定
-        this.checkPlayerCollisions();
     }
     
     /**
-     * プレイヤーと環境オブジェクトの衝突判定
+     * 衝突判定と相互作用の処理
      */
-    checkPlayerCollisions() {
-        if (!this.player) return;
+    checkCollisions() {
+        if (!this.playerCharacter) return;
         
         // 百度石との衝突判定
         if (this.hyakudoStone) {
-            const isColliding = this.hyakudoStone.checkCollision(this.player);
-            if (isColliding && !this.playerAtHyakudoStone) {
-                this.hyakudoStone.onPlayerReach(this.player);
-            } else if (!isColliding && this.playerAtHyakudoStone) {
-                this.hyakudoStone.onPlayerLeave(this.player);
+            const isCollidingWithHyakudo = this.hyakudoStone.checkCollision(this.playerCharacter);
+            
+            if (isCollidingWithHyakudo && !this.lastCollisionCheck.hyakudo) {
+                // 新たに衝突した
+                this.hyakudoStone.onPlayerReach(this.playerCharacter);
+            } else if (!isCollidingWithHyakudo && this.lastCollisionCheck.hyakudo) {
+                // 衝突から離れた
+                this.hyakudoStone.onPlayerLeave(this.playerCharacter);
             }
+            
+            this.lastCollisionCheck.hyakudo = isCollidingWithHyakudo;
         }
         
         // 社殿との衝突判定
         if (this.mainHall) {
-            const isColliding = this.mainHall.checkCollision(this.player);
-            if (isColliding && !this.playerAtMainHall) {
-                this.mainHall.onPlayerReach(this.player);
-            } else if (!isColliding && this.playerAtMainHall) {
-                this.mainHall.onPlayerLeave(this.player);
+            const isCollidingWithHall = this.mainHall.checkCollision(this.playerCharacter);
+            
+            if (isCollidingWithHall && !this.lastCollisionCheck.hall) {
+                // 新たに衝突した
+                this.mainHall.onPlayerReach(this.playerCharacter);
+            } else if (!isCollidingWithHall && this.lastCollisionCheck.hall) {
+                // 衝突から離れた
+                this.mainHall.onPlayerLeave(this.playerCharacter);
             }
+            
+            this.lastCollisionCheck.hall = isCollidingWithHall;
         }
     }
     
@@ -226,8 +302,8 @@ class GameScene extends Scene {
         }
         
         // プレイヤーキャラクターの描画
-        if (this.player) {
-            this.player.render(context);
+        if (this.playerCharacter) {
+            this.playerCharacter.render(context);
         }
         
         // 進捗UIの描画
@@ -238,140 +314,71 @@ class GameScene extends Scene {
                 this.progressTracker.getRemainingCount(),
                 this.progressTracker.getProgressPercentage()
             );
-            
-            // 完了時の特別表示
-            if (this.progressTracker.isCompleted()) {
-                this.progressUI.renderCompletionMessage(context);
-            }
         }
         
-        // UI情報の描画
-        this.renderUI(context);
+        // 名前と願い事の表示
+        this.renderPlayerInfo(context);
         
-        // 操作説明の描画
-        this.renderInstructions(context);
-    }
-    
-    /**
-     * プレイヤーが百度石に到達した時の処理
-     */
-    onPlayerReachHyakudoStone(player, stone) {
-        this.playerAtHyakudoStone = true;
-        
-        // 進捗トラッカーに通知
-        if (this.progressTracker) {
-            this.progressTracker.onPlayerReachHyakudo();
+        // 完了メッセージの描画
+        if (this.showCompletionMessage) {
+            this.renderCompletionMessage(context);
         }
-        
-        console.log('Player reached Hyakudo Stone - 御百度参り開始地点');
     }
     
     /**
-     * プレイヤーが百度石から離れた時の処理
+     * 名前と願い事の表示
+     * @param {CanvasRenderingContext2D} context
      */
-    onPlayerLeaveHyakudoStone(player, stone) {
-        this.playerAtHyakudoStone = false;
-        console.log('Player left Hyakudo Stone');
-    }
-    
-    /**
-     * プレイヤーが社殿に到達した時の処理
-     */
-    onPlayerReachMainHall(player, hall) {
-        this.playerAtMainHall = true;
+    renderPlayerInfo(context) {
+        context.save();
         
-        // 進捗トラッカーに通知
-        if (this.progressTracker) {
-            this.progressTracker.onPlayerReachHall();
-        }
+        // 背景パネル（往復回数の上に配置、y=100の上）
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(10, 50, 320, 50);
+        context.strokeStyle = '#3498db';
+        context.lineWidth = 2;
+        context.strokeRect(10, 50, 320, 50);
         
-        console.log('Player reached Main Hall - 参拝地点');
-    }
-    
-    /**
-     * プレイヤーが社殿から離れた時の処理
-     */
-    onPlayerLeaveMainHall(player, hall) {
-        this.playerAtMainHall = false;
-        console.log('Player left Main Hall');
-    }
-    
-    /**
-     * 背景の描画（旧システム - 削除予定）
-     */
-    renderBackground(context) {
-        // この関数は新しい環境システムに置き換えられました
-        // 互換性のために残していますが、使用されません
-    }
-    
-    /**
-     * 簡単な神社風装飾の描画（旧システム - 削除予定）
-     */
-    renderSimpleShrine(context) {
-        // この関数は新しい環境システムに置き換えられました
-        // 互換性のために残していますが、使用されません
-    }
-    
-    /**
-     * UI情報の描画
-     */
-    renderUI(context) {
-        // プレイヤー情報
-        context.fillStyle = '#ecf0f1';
-        context.font = '16px Arial';
-        context.textAlign = 'left';
-        context.textBaseline = 'top';
-        
-        if (this.playerName) {
-            context.fillText(`名前: ${this.playerName}`, 20, 20);
-        }
-        
-        if (this.playerWish) {
-            context.fillText(`願い事: ${this.playerWish}`, 20, 45);
-        }
-        
-        // 現在の状態表示
-        context.fillStyle = '#f39c12';
         context.font = '14px Arial';
+        context.textAlign = 'left';
+        context.textBaseline = 'top';
         
-        if (this.playerAtHyakudoStone) {
-            context.fillText('百度石に到達中', 20, 80);
-        } else if (this.playerAtMainHall) {
-            context.fillText('社殿で参拝中', 20, 80);
-        } else {
-            context.fillText('神社境内を移動中', 20, 80);
+        // 名前
+        context.fillStyle = '#bdc3c7';
+        context.fillText('名前:', 20, 60);
+        context.fillStyle = '#ecf0f1';
+        context.fillText(this.playerName, 65, 60);
+        
+        // 願い事
+        context.fillStyle = '#bdc3c7';
+        context.fillText('願い事:', 20, 80);
+        context.fillStyle = '#f39c12';
+        // 長い場合は切り詰める
+        const wish = this.playerWish.length > 20 ? this.playerWish.slice(0, 20) + '…' : this.playerWish;
+        context.fillText(wish, 75, 80);
+        
+        context.restore();
+    }
+    
+    /**
+     * 完了メッセージの描画
+     * @param {CanvasRenderingContext2D} context - Canvas描画コンテキスト
+     */
+    renderCompletionMessage(context) {
+        if (this.progressUI) {
+            this.progressUI.renderCompletionMessage(context);
         }
     }
     
     /**
-     * 操作説明の描画
+     * ゲーム完了時の処理
      */
-    renderInstructions(context) {
-        context.fillStyle = '#bdc3c7';
-        context.font = '12px Arial';
-        context.textAlign = 'left';
-        context.textBaseline = 'top';
+    onGameCompletion() {
+        console.log('Game completed! 100 round trips achieved!');
         
-        const instructions = [
-            '操作方法:',
-            'WASD または 矢印キー: 移動',
-            'タッチ: スワイプで移動',
-            '',
-            'キャラクターを操作して百度石（下）と社殿（上）の間を移動してみてください'
-        ];
-        
-        instructions.forEach((instruction, index) => {
-            context.fillText(instruction, 20, 520 + index * 15);
-        });
-    }
-    
-    /**
-     * 入力処理
-     * @param {Object} input - 入力情報
-     */
-    handleInput(input) {
-        // プレイヤーキャラクターが入力を直接処理するため、
-        // ここでは特別な処理は不要
+        this.isGameCompleted = true;
+        this.showCompletionMessage = true;
+        this.completionMessageTimer = 0;
     }
     
     /**
@@ -380,51 +387,77 @@ class GameScene extends Scene {
     transitionToCompletionScene() {
         console.log('Transitioning to CompletionScene...');
         
-        // 少し遅延を入れて遷移（完了メッセージを見せるため）
-        setTimeout(() => {
-            if (this.gameEngine && this.gameEngine.sceneManager) {
-                const completionData = {
-                    playerName: this.playerName,
-                    playerWish: this.playerWish
-                };
-                this.gameEngine.sceneManager.switchScene('completion', completionData);
-            }
-        }, 2000); // 2秒後に遷移
+        const sceneManager = this.gameEngine?.getSceneManager();
+        if (sceneManager && sceneManager.hasScene('completion')) {
+            const completionData = {
+                playerName: this.playerName,
+                playerWish: this.playerWish
+            };
+            
+            sceneManager.switchScene('completion', completionData);
+        } else {
+            console.warn('CompletionScene not available');
+        }
+    }
+    
+    /**
+     * 入力処理
+     * @param {Object} input - 入力情報
+     */
+    handleInput(input) {
+        // プレイヤーキャラクターが入力を直接処理するため、ここでは特に何もしない
+    }
+    
+    /**
+     * ゲーム状態を取得（デバッグ用）
+     * @returns {Object} ゲーム状態
+     */
+    getGameState() {
+        return {
+            playerName: this.playerName,
+            playerWish: this.playerWish,
+            isCompleted: this.isGameCompleted,
+            progressTracker: this.progressTracker ? this.progressTracker.getState() : null,
+            playerPosition: this.playerCharacter ? this.playerCharacter.getPosition() : null
+        };
+    }
+    
+    /**
+     * シーンのリセット
+     */
+    reset() {
+        console.log('Resetting GameScene...');
+        
+        // 進捗トラッカーをリセット
+        if (this.progressTracker) {
+            this.progressTracker.reset();
+        }
+        
+        // プレイヤーキャラクターを初期位置に戻す
+        if (this.playerCharacter) {
+            this.playerCharacter.setPosition(
+                400 - 16,  // 中央
+                600 - 180  // 百度石の少し上
+            );
+        }
+        
+        // ゲーム状態をリセット
+        this.isGameCompleted = false;
+        this.showCompletionMessage = false;
+        this.completionMessageTimer = 0;
+        this.lastCollisionCheck = {
+            hyakudo: false,
+            hall: false
+        };
+        
+        console.log('GameScene reset complete');
     }
     
     /**
      * シーンの破棄処理
      */
     destroy() {
-        if (this.player) {
-            this.player.destroy();
-            this.player = null;
-        }
-        
-        if (this.shrineEnvironment) {
-            this.shrineEnvironment.destroy();
-            this.shrineEnvironment = null;
-        }
-        
-        if (this.hyakudoStone) {
-            this.hyakudoStone.destroy();
-            this.hyakudoStone = null;
-        }
-        
-        if (this.mainHall) {
-            this.mainHall.destroy();
-            this.mainHall = null;
-        }
-        
-        if (this.progressTracker) {
-            this.progressTracker = null;
-        }
-        
-        if (this.progressUI) {
-            this.progressUI.destroy();
-            this.progressUI = null;
-        }
-        
+        this.destroyComponents();
         super.destroy();
         console.log('GameScene destroyed');
     }
